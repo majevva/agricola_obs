@@ -1,0 +1,20 @@
+.tab-content {
+    display: none;
+  }
+  .tab-content.active {
+    display: block;
+  }
+  .tab-button.active {
+    background-color: #6b7280;
+  }
+  .status-on {
+    color: #10b981;
+  }
+  .status-off {
+    color: #ef4444;
+  }
+  .player-item.selected {
+    background-color: #6b7280; /* Jasniejszy odcień szarości */
+    font-weight: 700;
+    border: 2px solid #a855f7; /* Fioletowa ramka dla dodatkowego wyróżnienia */
+  }

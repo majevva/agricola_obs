@@ -1,0 +1,22 @@
+[
+  {
+    "number": 1,
+    "name": "Jan Kowalski",
+    "position": "B"
+  },
+  {
+    "number": 2,
+    "name": "Piotr Nowak",
+    "position": "O"
+  },
+  {
+    "number": 3,
+    "name": "Adam Wiśniewski",
+    "position": "N"
+  },
+  {
+    "number": 4,
+    "name": "Marek Zieliński",
+    "position": "SP"
+  }
+]

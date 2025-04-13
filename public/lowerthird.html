@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Lower Third</title>
+  <link rel="stylesheet" href="scoreboard.css">
+</head>
+<body>
+  <div id="lower-third-container"></div>
+
+  <script>
+    function renderLowerThird(data) {
+      const container = document.getElementById('lower-third-container');
+      container.innerHTML = ''; // Wyczyść poprzednią belkę
+
+      if (!data || !data.playerOut) return; // Nie renderuj, jeśli brak danych
+
+      const lowerThird = document.createElement('div');
+      lowerThird.className = 'lower-third';
+      const headerRow = document.createElement('div');
+      headerRow.className = 'header-row';
+
+      const teamHeader = document.createElement('div');
+      teamHeader.className = `team-header ${data.team}`;
+      teamHeader.innerHTML = `
+        <div class="color"></div>
+        <div class="name">
+          <span id="team-name"></span>
+        </div>
+      `;
+      headerRow.appendChild(teamHeader);
+
+      const changeHeader = document.createElement('div');
+      changeHeader.className = 'change-header';
+      changeHeader.innerHTML = `<span id="change-label">${
+        data.type === 'change' ? 'Zmiana' :
+        data.type === 'yellow-card' ? 'Żółta Kartka' :
+        data.type === 'red-card' ? 'Czerwona Kartka' :
+        data.type === 'injury' ? 'Kontuzja' : 'Gol'
+      }</span>`;
+      headerRow.appendChild(changeHeader);
+
+      lowerThird.appendChild(headerRow);
+
+      const playerList = document.createElement('div');
+      playerList.className = 'player-list';
+      playerList.classList.add(data.type === 'change' && data.playerIn ? 'two-players' : 'one-player');
+
+      const playerOut = document.createElement('div');
+      playerOut.className = 'player out';
+      const outSurname = data.playerOut.name.split(' ').pop();
+      playerOut.innerHTML = `
+        <span class="number">${data.playerOut.number}</span>
+        <span class="name">${outSurname}</span>
+        ${data.type === 'change' ? '<span class="arrow">➡️</span>' :
+         data.type === 'yellow-card' ? '<span class="indicator yellow-card"></span>' :
+         data.type === 'red-card' ? '<span class="indicator red-card"></span>' :
+         data.type === 'injury' ? '<span class="indicator injury">➕</span>' :
+         '<span class="indicator goal">⚽</span>'}
+      `;
+      playerList.appendChild(playerOut);
+
+      if (data.type === 'change' && data.playerIn) {
+        const playerIn = document.createElement('div');
+        playerIn.className = 'player in';
+        const inSurname = data.playerIn.name.split(' ').pop();
+        playerIn.innerHTML = `
+          <span class="number">${data.playerIn.number}</span>
+          <span class="name">${inSurname}</span>
+          <span class="arrow">⬅️</span>
+        `;
+        playerList.appendChild(playerIn);
+      }
+
+      lowerThird.appendChild(playerList);
+      container.appendChild(lowerThird);
+
+      // Aktualizacja kolorów i nazw
+      fetch('/scorebug-data')
+        .then(response => response.json())
+        .then(scorebugData => {
+          document.getElementById('team-name').textContent = data.team === 'home' ? scorebugData.homeName : scorebugData.awayName;
+          document.querySelector('.team-header .color').style.backgroundColor = data.team === 'home' ? scorebugData.homeColor : scorebugData.awayName;
+          document.querySelector('.team-header').style.backgroundColor = scorebugData.teamBackground;
+          document.querySelector('.team-header .name').style.color = scorebugData.teamTextColor;
+          document.querySelector('.change-header').style.backgroundColor = scorebugData.goalsBackground;
+          document.querySelector('.change-header').style.color = scorebugData.goalsTextColor;
+          document.querySelector('.player.out').style.backgroundColor = scorebugData.teamBackground;
+          document.querySelector('.player.out').style.color = scorebugData.teamTextColor;
+          if (data.type === 'change' && data.playerIn) {
+            document.querySelector('.player.in').style.backgroundColor = scorebugData.teamTextColor;
+            document.querySelector('.player.in').style.color = scorebugData.teamBackground;
+          }
+        });
+
+      // Animacja znikania po 10 sekundach
+      setTimeout(() => {
+        lowerThird.classList.add('hide');
+      }, 10000);
+
+      // Zapisujemy timestamp pokazanego powiadomienia w localStorage
+      localStorage.setItem('lastShownTimestamp', data.timestamp);
+    }
+
+    // Pobieraj dane co sekundę
+    setInterval(() => {
+      fetch('/notification-data')
+        .then(response => response.json())
+        .then(data => {
+          if (!data || !data.playerOut || !data.timestamp) return; // Nie renderuj, jeśli brak danych
+
+          // Pobierz ostatni wyświetlony timestamp z localStorage
+          const lastShownTimestamp = localStorage.getItem('lastShownTimestamp');
+
+          // Wyświetl powiadomienie tylko, jeśli timestamp jest nowy (czyli powiadomienie nie zostało jeszcze pokazane)
+          if (!lastShownTimestamp || lastShownTimestamp != data.timestamp) {
+            renderLowerThird(data);
+          }
+        })
+        .catch(error => console.error('Błąd:', error));
+    }, 1000);
+  </script>
+</body>
+</html>
