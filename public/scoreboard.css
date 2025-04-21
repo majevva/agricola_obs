@@ -83,7 +83,6 @@
   z-index: 2;
 }
 
-/* Styl dla Lower Third */
 .lower-third {
   position: relative;
   display: flex;
@@ -91,43 +90,20 @@
   font-family: 'Quicksand', sans-serif;
   font-weight: 500;
   letter-spacing: 0.6px;
-  opacity: 0;
-  animation: fadeIn 0.3s ease-out forwards;
+  width: 280px;
 }
 
 .lower-third.hide {
-  animation: fadeOut 0.3s ease-out forwards;
-  animation-delay: 0.3s;
-}
-
-.lower-third.hide .team-header {
-  animation: slideOutToLeft 0.5s ease-out forwards;
-}
-
-.lower-third.hide .change-header {
-  animation: slideOutToTeam 0.5s ease-out 0.3s forwards;
-}
-
-.lower-third.hide .player-list {
-  animation: collapsePlayerList 0.5s ease-out 0.6s forwards;
-}
-
-.lower-third.hide .player.out {
-  animation: fadeOutPlayer 0.3s ease-out 0.9s forwards;
-}
-
-.lower-third.hide .player.in {
-  animation: fadeOutPlayer 0.3s ease-out 1.1s forwards;
+  animation: fadeOut 0.5s ease-out forwards;
 }
 
 .header-row {
-  display: flex;
-  flex-direction: row;
   position: relative;
+  height: 34px;
 }
 
 .team-header {
-  position: relative;
+  position: absolute;
   width: 100px;
   height: 34px;
   display: flex;
@@ -135,7 +111,8 @@
   overflow: hidden;
   padding-left: 6px;
   transform: translateX(-100%);
-  animation: slideInFromLeft 0.5s ease-out forwards;
+  animation: slideInTeamHeader 0.5s ease-out forwards;
+  z-index: 2;
 }
 
 .team-header .color {
@@ -144,75 +121,78 @@
 
 .team-header .name {
   padding: 0;
-  margin-left: 4px;
-  font-size: 1.4em;
+  margin-left: 6px;
+  font-size: 1.3em;
 }
 
 .change-header {
+  position: absolute;
   width: 180px;
   height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2em;
+  font-size: 1.1em;
   font-weight: 700;
-  position: absolute;
   left: 100px;
-  opacity: 0;
-  animation: slideInFromTeam 0.5s ease-out 0.3s forwards;
+  top: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: expandChangeHeader 0.4s ease-out 0.5s forwards;
+  z-index: 1;
 }
 
 .player-list {
-  position: relative;
-  width: 180px;
-  margin-left: 100px;
+  position: absolute; /* Zmieniamy na position: absolute */
+  width: 180px; /* Taka sama szerokość jak .change-header */
+  left: 100px; /* Taka sama pozycja jak .change-header */
+  top: 34px; /* Umieszczamy dokładnie pod .change-header (34px to wysokość .change-header) */
   padding: 0;
   height: 0;
   overflow: hidden;
+  opacity: 0;
+  animation: fadeInPlayerList 0.4s ease-out 0.9s forwards;
 }
 
 .player-list.two-players {
-  animation: expandPlayerListTwo 0.5s ease-out 0.6s forwards;
+  animation: expandPlayerListTwo 0.5s ease-out 1s forwards;
 }
 
 .player-list.one-player {
-  animation: expandPlayerListOne 0.5s ease-out 0.6s forwards;
+  animation: expandPlayerListOne 0.5s ease-out 1s forwards;
 }
 
 .player {
   display: flex;
   align-items: center;
-  font-size: 1em;
+  font-size: 0.95em;
   font-weight: 500;
   margin: 0;
-  padding: 2px 8px;
-  height: 28px;
-  opacity: 0;
+  padding: 2px 0;
+  height: 26px;
   position: relative;
-}
-
-.player.out {
-  animation: fadeInPlayer 0.3s ease-out 0.9s forwards;
-}
-
-.player.in {
-  animation: fadeInPlayer 0.3s ease-out 1.1s forwards;
+  transform: translateY(100%);
+  opacity: 0;
+  animation: riseUpPlayer 0.5s ease-out 1s forwards;
+  box-sizing: border-box;
 }
 
 .player .number {
   font-weight: 700;
   margin-right: 6px;
-  width: 20px; /* Stała szerokość dla wyrównania */
+  width: 20px;
 }
 
 .player .name {
-  flex-grow: 0; /* Usuwamy flex-grow, aby nazwisko nie rozciągało elementu */
-  width: 110px; /* Stała szerokość dla wyrównania */
+  flex-grow: 0;
+  width: 110px;
 }
 
 .player .arrow {
   font-size: 1em;
-  margin-left: 4px;
+  margin-left: 8px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .player.out .arrow {
@@ -224,11 +204,17 @@
 }
 
 .player .indicator {
-  position: absolute;
-  left: -50px; /* Pozycja kwadracika */
-  top: 0;
-  width: 50px; /* Połowa szerokości belki drużyny (100px / 2) */
-  height: 28px; /* Wysokość belki z nazwiskiem */
+  margin-left: 6px;
+  display: inline-block;
+  line-height: 26px;
+}
+
+.player .yellow-card,
+.player .red-card {
+  width: 18px;
+  height: 26px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .player .yellow-card {
@@ -242,29 +228,34 @@
 .player .injury {
   color: #f00;
   font-size: 1.2em;
-  left: -30px;
-  top: 50%;
-  transform: translateY(-50%);
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .player .goal {
   font-size: 1.5em;
-  left: -30px;
-  top: 50%;
-  transform: translateY(-50%);
+  display: inline-block;
+  vertical-align: middle;
 }
 
-/* Animacje pojawiania */
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
+.player .unknown {
+  font-size: 1em;
+  color: #fff;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 @keyframes slideInFromLeft {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes slideInExtraTime {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes slideInTeamHeader {
   0% {
     transform: translateX(-100%);
     opacity: 0;
@@ -275,36 +266,18 @@
   }
 }
 
-@keyframes slideInFromTeam {
+@keyframes expandChangeHeader {
   0% {
+    transform: scaleX(0);
     opacity: 0;
-    transform: translateX(-50%);
   }
   100% {
+    transform: scaleX(1);
     opacity: 1;
-    transform: translateX(0);
   }
 }
 
-@keyframes expandPlayerListTwo {
-  0% {
-    height: 0;
-  }
-  100% {
-    height: 60px;
-  }
-}
-
-@keyframes expandPlayerListOne {
-  0% {
-    height: 0;
-  }
-  100% {
-    height: 30px;
-  }
-}
-
-@keyframes fadeInPlayer {
+@keyframes fadeInPlayerList {
   0% {
     opacity: 0;
     transform: translateY(-10px);
@@ -315,13 +288,41 @@
   }
 }
 
-/* Animacje znikania */
-@keyframes fadeOut {
+@keyframes expandPlayerListOne {
   0% {
-    opacity: 1;
+    height: 0;
+    opacity: 0;
   }
   100% {
+    height: 28px;
+    opacity: 1;
+  }
+}
+
+@keyframes expandPlayerListTwo {
+  0% {
+    height: 0;
     opacity: 0;
+  }
+  100% {
+    height: 56px;
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(-20px); }
+}
+
+@keyframes fadeInPlayer {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -364,5 +365,16 @@
   100% {
     opacity: 0;
     transform: translateY(-10px);
+  }
+}
+
+@keyframes riseUpPlayer {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
   }
 }

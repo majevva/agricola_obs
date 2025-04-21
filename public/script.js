@@ -1,44 +1,8 @@
-const obs = new OBSWebSocket();
 let homeScore = 0;
 let awayScore = 0;
 let selectedPlayers = [];
 let notificationType = 'change';
 let notificationTeam = 'home';
-
-async function connectToOBS() {
-  try {
-    const config = await fetch('/config.json').then(res => res.json());
-    await obs.connect(`ws://${config.obs.host}:${config.obs.port}`, config.obs.password);
-    console.log('Połączono z OBS');
-
-    obs.on('StreamStarted', () => {
-      document.getElementById('stream-status').textContent = 'ON';
-      document.getElementById('stream-status').classList.remove('status-off');
-      document.getElementById('stream-status').classList.add('status-on');
-      document.querySelector('.status-item i').classList.remove('text-red-500');
-      document.querySelector('.status-item i').classList.add('text-green-500');
-    });
-
-    obs.on('StreamStopped', () => {
-      document.getElementById('stream-status').textContent = 'OFF';
-      document.getElementById('stream-status').classList.remove('status-on');
-      document.getElementById('stream-status').classList.add('status-off');
-      document.querySelector('.status-item i').classList.remove('text-green-500');
-      document.querySelector('.status-item i').classList.add('text-red-500');
-    });
-
-    const streamStatus = await obs.send('GetStreamingStatus');
-    if (streamStatus.streaming) {
-      document.getElementById('stream-status').textContent = 'ON';
-      document.getElementById('stream-status').classList.add('status-on');
-      document.querySelector('.status-item i').classList.add('text-green-500');
-    }
-  } catch (error) {
-    console.error('Błąd połączenia z OBS:', error);
-  }
-}
-
-connectToOBS();
 
 async function loadInitialSettings() {
   try {
@@ -99,51 +63,102 @@ async function loadInitialSettings() {
   }
 }
 
+async function checkStreamStatus() {
+  try {
+    const response = await fetch('/stream-status');
+    const data = await response.json();
+    if (data.streaming) {
+      document.getElementById('stream-status').textContent = 'ON';
+      document.getElementById('stream-status').classList.remove('status-off');
+      document.getElementById('stream-status').classList.add('status-on');
+      document.querySelector('.status-item i').classList.remove('text-red-500');
+      document.querySelector('.status-item i').classList.add('text-green-500');
+    } else {
+      document.getElementById('stream-status').textContent = 'OFF';
+      document.getElementById('stream-status').classList.remove('status-on');
+      document.getElementById('stream-status').classList.add('status-off');
+      document.querySelector('.status-item i').classList.remove('text-green-500');
+      document.querySelector('.status-item i').classList.add('text-red-500');
+    }
+  } catch (error) {
+    console.error('Błąd sprawdzania statusu streamu:', error);
+  }
+}
+
+// Sprawdzaj status streamu co 5 sekund
+setInterval(checkStreamStatus, 5000);
+checkStreamStatus();
+
 async function loadPlayers() {
   try {
     const response = await fetch('/players-data');
+    if (!response.ok) {
+      throw new Error(`Błąd HTTP: ${response.status} ${response.statusText}`);
+    }
     const data = await response.json();
+
+    if (!data.home || !data.away) {
+      throw new Error('Brak danych drużyn w odpowiedzi serwera');
+    }
 
     const homeList = document.getElementById('home-players-list');
     const awayList = document.getElementById('away-players-list');
 
+    homeList.innerHTML = '';
+    awayList.innerHTML = '';
+
     data.home.forEach(player => {
       const div = document.createElement('div');
-      div.className = 'player-item bg-gray-700 p-2 rounded-lg cursor-pointer';
+      div.className = 'player-item bg-gray-700 p-2 rounded-lg cursor-pointer hover:bg-gray-600 transition';
       div.dataset.team = 'home';
-      div.dataset.number = player.number;
-      div.dataset.name = player.name;
-      div.innerHTML = `<span class="font-bold">${player.number}</span> ${player.name} (${player.position})`;
+      div.textContent = `${player.number} ${player.lastname} (${player.position})`;
       div.onclick = () => togglePlayerSelection(div, player);
       homeList.appendChild(div);
     });
 
     data.away.forEach(player => {
       const div = document.createElement('div');
-      div.className = 'player-item bg-gray-700 p-2 rounded-lg cursor-pointer';
+      div.className = 'player-item bg-gray-700 p-2 rounded-lg cursor-pointer hover:bg-gray-600 transition';
       div.dataset.team = 'away';
-      div.dataset.number = player.number;
-      div.dataset.name = player.name;
-      div.innerHTML = `<span class="font-bold">${player.number}</span> ${player.name} (${player.position})`;
+      div.textContent = `${player.number} ${player.lastname} (${player.position})`;
       div.onclick = () => togglePlayerSelection(div, player);
       awayList.appendChild(div);
     });
   } catch (error) {
     console.error('Błąd ładowania zawodników:', error);
+    const homeList = document.getElementById('home-players-list');
+    const awayList = document.getElementById('away-players-list');
+    homeList.innerHTML = '<p class="text-red-500">Błąd ładowania zawodników gospodarzy.</p>';
+    awayList.innerHTML = '<p class="text-red-500">Błąd ładowania zawodników gości.</p>';
   }
 }
 
 function togglePlayerSelection(div, player) {
   const maxSelection = notificationType === 'change' ? 2 : 1;
+  
   if (div.classList.contains('selected')) {
+    // If clicking already selected player, deselect it
     div.classList.remove('selected');
     selectedPlayers = selectedPlayers.filter(p => p.number !== player.number || p.team !== div.dataset.team);
-  } else if (selectedPlayers.length < maxSelection) {
+  } else {
+    if (notificationType === 'change' && selectedPlayers.length > 0) {
+      const firstPlayerTeam = selectedPlayers[0].team;
+      if (firstPlayerTeam !== div.dataset.team) {
+        alert('Przy zmianie zawodnicy muszą być z tej samej drużyny!');
+        return;
+      }
+    } else if (notificationType !== 'change' && selectedPlayers.length === 1) {
+      // If we already have one player selected and it's not a change notification,
+      // deselect the previous player
+      const previouslySelected = document.querySelector('.player-item.selected');
+      if (previouslySelected) {
+        previouslySelected.classList.remove('selected');
+        selectedPlayers = [];
+      }
+    }
+
     div.classList.add('selected');
     selectedPlayers.push({ ...player, team: div.dataset.team });
-  } else {
-    alert(`Możesz wybrać maksymalnie ${maxSelection} zawodników dla tego typu powiadomienia.`);
-    return;
   }
   updateNotificationPreview(notificationType);
 }
@@ -158,7 +173,6 @@ async function updateNotificationPreview(type) {
   const playerOut = preview.querySelector('.player.out');
   const playerIn = preview.querySelector('.player.in');
 
-  // Sprawdzamy, czy wybrano odpowiednią liczbę zawodników
   const requiredPlayers = notificationType === 'change' ? 2 : 1;
   if (selectedPlayers.length < requiredPlayers) {
     preview.classList.add('hidden');
@@ -166,7 +180,6 @@ async function updateNotificationPreview(type) {
     return;
   }
 
-  // Pokazujemy podgląd, jeśli wybrano odpowiednią liczbę zawodników
   preview.classList.remove('hidden');
   previewMessage.classList.add('hidden');
 
@@ -176,8 +189,7 @@ async function updateNotificationPreview(type) {
     type === 'red-card' ? 'Czerwona Kartka' :
     type === 'injury' ? 'Kontuzja' : 'Gol';
 
-  // Wyświetlamy tylko nazwisko
-  const outSurname = selectedPlayers[0].name.split(' ').pop();
+  const outSurname = selectedPlayers[0].lastname;
   playerOut.innerHTML = `
     <span class="number">${selectedPlayers[0].number}</span>
     <span class="name">${outSurname}</span>
@@ -190,7 +202,7 @@ async function updateNotificationPreview(type) {
 
   if (type === 'change' && selectedPlayers.length > 1) {
     playerIn.style.display = 'flex';
-    const inSurname = selectedPlayers[1].name.split(' ').pop();
+    const inSurname = selectedPlayers[1].lastname;
     playerIn.innerHTML = `
       <span class="number">${selectedPlayers[1].number}</span>
       <span class="name">${inSurname}</span>
@@ -204,7 +216,6 @@ async function updateNotificationPreview(type) {
     preview.querySelector('.player-list').classList.add('one-player');
   }
 
-  // Aktualizacja kolorów i nazwy drużyny w podglądzie
   fetch('/initial-settings')
     .then(response => response.json())
     .then(data => {
@@ -238,16 +249,21 @@ async function sendNotification() {
     team: notificationTeam,
     playerOut: selectedPlayers[0],
     playerIn: notificationType === 'change' ? selectedPlayers[1] : null,
-    timestamp: Date.now() // Dodajemy timestamp do danych
+    timestamp: Date.now()
   };
 
+  console.log('Wysyłanie powiadomienia z danymi:', data);
+
   try {
-    await fetch('/update-notification', {
+    const response = await fetch('/update-notification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    console.log('Powiadomienie wysłane');
+    if (!response.ok) {
+      throw new Error(`Błąd HTTP: ${response.status} ${response.statusText}`);
+    }
+    console.log('Powiadomienie wysłane pomyślnie');
   } catch (error) {
     console.error('Błąd wysyłania powiadomienia:', error);
   }
@@ -276,7 +292,8 @@ function switchTab(tabName) {
 
 async function startStream() {
   try {
-    await obs.send('StartStreaming');
+    await fetch('/start-stream', { method: 'POST' });
+    console.log('Stream uruchomiony');
   } catch (error) {
     console.error('Błąd uruchamiania streamu:', error);
   }
@@ -284,9 +301,23 @@ async function startStream() {
 
 async function stopStream() {
   try {
-    await obs.send('StopStreaming');
+    await fetch('/stop-stream', { method: 'POST' });
+    console.log('Stream zatrzymany');
   } catch (error) {
     console.error('Błąd zatrzymywania streamu:', error);
+  }
+}
+
+async function switchScene(sceneName) {
+  try {
+    await fetch('/switch-scene', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sceneName })
+    });
+    console.log(`Przełączono na scenę: ${sceneName}`);
+  } catch (error) {
+    console.error(`Błąd przełączania sceny ${sceneName}:`, error);
   }
 }
 
@@ -496,15 +527,6 @@ document.getElementById('update-scorebug').addEventListener('click', async funct
 
   adjustPreviewTeamWidths();
 });
-
-async function switchScene(sceneName) {
-  try {
-    await obs.send('SetCurrentScene', { 'scene-name': sceneName });
-    console.log(`Przełączono na scenę: ${sceneName}`);
-  } catch (error) {
-    console.error(`Błąd przełączania sceny ${sceneName}:`, error);
-  }
-}
 
 function pad(number) {
   return number.toString().padStart(2, '0');

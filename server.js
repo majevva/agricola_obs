@@ -1,15 +1,19 @@
 const express = require('express');
 const fs = require('fs').promises;
+// Poprawny import dla wersji 5.0.0
+const OBSWebSocket = require('obs-websocket-js').default;
 const app = express();
 const config = require('./config.json');
 const port = config.port;
+
+const obs = new OBSWebSocket();
 
 app.use(express.static('public'));
 app.use(express.json());
 
 let scorebugData = {
   homeName: 'AGR',
-  awayName: 'GOŚCIE',
+  awayName: 'BRZ',
   homeScore: 0,
   awayScore: 0,
   minute: '00',
@@ -29,9 +33,44 @@ let timerState = {
   seconds: 0
 };
 
-let notificationData = null; // Początkowo brak powiadomienia
+let notificationData = null;
 
 let timerInterval = null;
+
+// Połączenie z OBS
+async function connectToOBS() {
+  const maxRetries = 5;
+  let retries = 0;
+
+  const tryConnect = async () => {
+    try {
+      await obs.connect(`ws://${config.obs.host}:${config.obs.port}`, config.obs.password);
+      console.log('Połączono z OBS');
+
+      obs.on('StreamStateChanged', (data) => {
+        console.log(data.outputActive ? 'Stream Started' : 'Stream Stopped');
+      });
+
+      obs.on('ConnectionClosed', () => {
+        console.log('Połączenie z OBS zamknięte. Ponawiam próbę...');
+        setTimeout(tryConnect, 5000); // Ponów próbę po 5 sekundach
+      });
+    } catch (error) {
+      console.error('Błąd połączenia z OBS:', error);
+      retries++;
+      if (retries < maxRetries) {
+        console.log(`Ponawiam próbę połączenia (${retries}/${maxRetries})...`);
+        setTimeout(tryConnect, 5000); // Ponów próbę po 5 sekundach
+      } else {
+        console.error('Nie udało się połączyć z OBS po maksymalnej liczbie prób.');
+      }
+    }
+  };
+
+  tryConnect();
+}
+connectToOBS();
+
 function startServerTimer() {
   if (!timerState.running) {
     timerState.running = true;
@@ -100,7 +139,22 @@ app.get('/players-data', async (req, res) => {
       away: JSON.parse(awayPlayers)
     });
   } catch (error) {
+    console.error('Błąd ładowania danych zawodników:', error);
     res.status(500).json({ error: 'Błąd ładowania danych zawodników' });
+  }
+});
+
+app.get('/stream-status', async (req, res) => {
+  try {
+    const streamStatus = await obs.call('GetStreamStatus');
+    res.json({ streaming: streamStatus.outputActive });
+  } catch (error) {
+    console.error('Błąd pobierania statusu streamu:', error);
+    if (error.code === 'NOT_CONNECTED') {
+      res.json({ streaming: false, error: 'Brak połączenia z OBS' });
+    } else {
+      res.status(500).json({ error: 'Błąd pobierania statusu streamu' });
+    }
   }
 });
 
@@ -147,9 +201,40 @@ app.post('/update-score', (req, res) => {
 app.post('/update-notification', (req, res) => {
   notificationData = {
     ...req.body,
-    timestamp: Date.now() // Dodajemy timestamp, aby oznaczyć nowe powiadomienie
+    timestamp: Date.now()
   };
   res.send('Powiadomienie zaktualizowane');
+});
+
+app.post('/start-stream', async (req, res) => {
+  try {
+    await obs.call('StartStream');
+    res.send('Stream uruchomiony');
+  } catch (error) {
+    console.error('Błąd uruchamiania streamu:', error);
+    res.status(500).send('Błąd uruchamiania streamu');
+  }
+});
+
+app.post('/stop-stream', async (req, res) => {
+  try {
+    await obs.call('StopStream');
+    res.send('Stream zatrzymany');
+  } catch (error) {
+    console.error('Błąd zatrzymywania streamu:', error);
+    res.status(500).send('Błąd zatrzymywania streamu');
+  }
+});
+
+app.post('/switch-scene', async (req, res) => {
+  try {
+    const { sceneName } = req.body;
+    await obs.call('SetCurrentProgramScene', { sceneName });
+    res.send(`Przełączono na scenę: ${sceneName}`);
+  } catch (error) {
+    console.error('Błąd przełączania sceny:', error);
+    res.status(500).send('Błąd przełączania sceny');
+  }
 });
 
 app.listen(port, () => {
