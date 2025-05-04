@@ -58,6 +58,9 @@ async function loadInitialSettings() {
     document.getElementById('preview-team-name').textContent = settings.homeName || 'GOSPODARZE';
 
     adjustPreviewTeamWidths();
+    
+    // Dodaj wywołanie funkcji sprawdzającej stan timera
+    await checkTimerState();
   } catch (error) {
     console.error('Błąd ładowania ustawień:', error);
   }
@@ -134,12 +137,14 @@ async function loadPlayers() {
 }
 
 function togglePlayerSelection(div, player) {
-  const maxSelection = notificationType === 'change' ? 2 : 1;
+  console.log("Toggling player selection:", player);
   
   if (div.classList.contains('selected')) {
     // If clicking already selected player, deselect it
     div.classList.remove('selected');
-    selectedPlayers = selectedPlayers.filter(p => p.number !== player.number || p.team !== div.dataset.team);
+    selectedPlayers = selectedPlayers.filter(p => 
+      p.number !== player.number || p.team !== div.dataset.team
+    );
   } else {
     if (notificationType === 'change' && selectedPlayers.length > 0) {
       const firstPlayerTeam = selectedPlayers[0].team;
@@ -147,9 +152,17 @@ function togglePlayerSelection(div, player) {
         alert('Przy zmianie zawodnicy muszą być z tej samej drużyny!');
         return;
       }
-    } else if (notificationType !== 'change' && selectedPlayers.length === 1) {
-      // If we already have one player selected and it's not a change notification,
-      // deselect the previous player
+      
+      if (selectedPlayers.length >= 2) {
+        // Jeśli już mamy 2 zawodników, usuń pierwszego
+        const firstSelected = document.querySelector('.player-item.selected');
+        if (firstSelected) {
+          firstSelected.classList.remove('selected');
+          selectedPlayers.shift();
+        }
+      }
+    } else if (notificationType !== 'change' && selectedPlayers.length >= 1) {
+      // Jeśli to nie jest zmiana i już mamy jednego zawodnika, usuń go
       const previouslySelected = document.querySelector('.player-item.selected');
       if (previouslySelected) {
         previouslySelected.classList.remove('selected');
@@ -160,6 +173,8 @@ function togglePlayerSelection(div, player) {
     div.classList.add('selected');
     selectedPlayers.push({ ...player, team: div.dataset.team });
   }
+  
+  console.log("Selected players:", selectedPlayers);
   updateNotificationPreview(notificationType);
 }
 
@@ -532,5 +547,317 @@ function pad(number) {
   return number.toString().padStart(2, '0');
 }
 
-loadInitialSettings();
-loadPlayers();
+// Zmienna globalna do śledzenia stanu timera
+let isTimerRunning = false;
+
+/**
+ * Toggle timer between running and paused states
+ */
+async function toggleTimer() {
+  if (isTimerRunning) {
+    await pauseTimer();
+    isTimerRunning = false;
+    updateTimerToggleButton(false);
+  } else {
+    await startTimer();
+    isTimerRunning = true;
+    updateTimerToggleButton(true);
+  }
+}
+
+/**
+ * Update timer toggle button appearance
+ * @param {boolean} running - Whether timer is running
+ */
+function updateTimerToggleButton(running) {
+  const button = document.getElementById('timer-toggle-btn');
+  const icon = document.getElementById('timer-toggle-icon');
+  const text = document.getElementById('timer-toggle-text');
+  
+  if (!button || !icon || !text) return;
+  
+  if (running) {
+    button.classList.remove('bg-blue-600');
+    button.classList.add('bg-yellow-600', 'running');
+    icon.classList.remove('fa-play');
+    icon.classList.add('fa-pause');
+    text.textContent = 'PAUZA';
+  } else {
+    button.classList.remove('bg-yellow-600', 'running');
+    button.classList.add('bg-blue-600');
+    icon.classList.remove('fa-pause');
+    icon.classList.add('fa-play');
+    text.textContent = 'START';
+  }
+}
+
+// Zmienna globalna do śledzenia stanu mikrofonu
+let isMicMuted = true; // Domyślnie mikrofon wyciszony
+
+/**
+ * Toggle microphone mute state
+ */
+async function toggleMic() {
+  try {
+    const newState = !isMicMuted;
+    const response = await fetch('/toggle-mic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mute: newState })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    isMicMuted = data.muted;
+    updateMicButton();
+    
+    console.log(`Mikrofon ${isMicMuted ? 'wyciszony' : 'włączony'}`);
+  } catch (error) {
+    console.error('Błąd przełączania mikrofonu:', error);
+  }
+}
+
+/**
+ * Update microphone button appearance based on mute state
+ */
+function updateMicButton() {
+  const micButton = document.getElementById('mic-toggle');
+  const micIcon = document.getElementById('mic-icon');
+  const micText = document.getElementById('mic-text');
+  
+  if (!micButton || !micIcon || !micText) return;
+  
+  if (isMicMuted) {
+    micButton.classList.add('muted');
+    micButton.classList.add('bg-red-600');
+    micButton.classList.remove('bg-green-600');
+    micIcon.classList.remove('fa-microphone');
+    micIcon.classList.add('fa-microphone-slash');
+    micText.textContent = 'MIKROFON WYCISZONY';
+  } else {
+    micButton.classList.remove('muted');
+    micButton.classList.remove('bg-red-600');
+    micButton.classList.add('bg-green-600');
+    micIcon.classList.remove('fa-microphone-slash');
+    micIcon.classList.add('fa-microphone');
+    micText.textContent = 'MIKROFON AKTYWNY';
+  }
+}
+
+// Funkcja do edycji timera bezpośrednio w miejscu
+function setupTimerEdit() {
+  const timerDisplay = document.getElementById('timer-display');
+  const timerEditToggle = document.getElementById('timer-edit');
+  
+  if (!timerDisplay || !timerEditToggle) return;
+  
+  timerEditToggle.addEventListener('click', function() {
+    // Pobierz aktualny czas
+    const currentTime = timerDisplay.textContent.trim();
+    
+    // Utwórz pole edycji zachowując styl timera
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentTime;
+    input.className = 'timer-display'; // Zachowaj ten sam styl
+    input.style.width = '100%';
+    input.style.textAlign = 'center';
+    input.style.border = '2px solid #6b46c1';
+    input.style.outline = 'none';
+    input.style.background = 'transparent';
+    
+    // Zastąp wyświetlacz polem edycji
+    timerDisplay.style.display = 'none';
+    timerDisplay.parentNode.insertBefore(input, timerDisplay);
+    
+    // Ustaw fokus i zaznacz tekst
+    input.focus();
+    input.select();
+    
+    // Flaga do śledzenia, czy input został już usunięty
+    let inputRemoved = false;
+    
+    // Funkcja do usuwania inputa i przywracania wyświetlacza
+    function cleanupInput() {
+      if (!inputRemoved) {
+        inputRemoved = true;
+        input.remove();
+        timerDisplay.style.display = '';
+      }
+    }
+    
+    // Obsługa zatwierdzenia (Enter) lub anulowania (Escape)
+    input.addEventListener('keydown', async function(event) {
+      if (event.key === 'Enter') {
+        const newTime = input.value.trim();
+        
+        // Sprawdź, czy format czasu jest poprawny (MM:SS)
+        if (/^\d{1,2}:\d{2}$/.test(newTime)) {
+          // Aktualizuj wyświetlacz timera
+          timerDisplay.textContent = newTime;
+          
+          // Wyślij nowy czas do serwera
+          try {
+            const parts = newTime.split(':');
+            const minutes = parseInt(parts[0], 10);
+            const seconds = parseInt(parts[1], 10);
+            
+            await fetch('/update-time', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                action: 'set',
+                minute: pad(minutes),
+                second: pad(seconds)
+              })
+            });
+          } catch (error) {
+            console.error('Błąd aktualizacji timera:', error);
+          }
+          
+          // Usuń pole edycji
+          cleanupInput();
+        } else {
+          // Wyświetl komunikat o błędzie
+          alert('Wprowadź czas w formacie MM:SS (np. 05:30)');
+          input.focus();
+          input.select();
+        }
+      } else if (event.key === 'Escape') {
+        // Anuluj edycję
+        cleanupInput();
+      }
+    });
+    
+    // Obsługa utraty fokusu
+    input.addEventListener('blur', function() {
+      // Anuluj edycję przy utracie fokusu
+      // Używamy setTimeout, aby dać zdarzeniu keydown szansę na wykonanie się pierwsze
+      setTimeout(cleanupInput, 100);
+    });
+  });
+}
+
+// Wywołaj funkcję po załadowaniu strony
+window.addEventListener('load', function() {
+  setupTimerEdit();
+});
+
+// Inicjalizacja przycisków typów powiadomień
+function setupNotificationButtons() {
+  const notificationTypeButtons = document.querySelectorAll('.notification-type-btn');
+  const notificationInstructions = document.getElementById('notification-instructions');
+  
+  notificationTypeButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      // Usuń klasę active ze wszystkich przycisków
+      notificationTypeButtons.forEach(btn => btn.classList.remove('active'));
+      
+      // Dodaj klasę active do klikniętego przycisku
+      this.classList.add('active');
+      
+      // Pobierz typ powiadomienia z atrybutu data-type
+      const type = this.getAttribute('data-type');
+      
+      // Aktualizuj instrukcje w zależności od typu
+      if (type === 'change') {
+        notificationInstructions.textContent = 'Wybierz dwóch zawodników z tej samej drużyny - pierwszy wychodzi, drugi wchodzi.';
+      } else if (type === 'yellow-card' || type === 'red-card') {
+        notificationInstructions.textContent = 'Wybierz zawodnika, który otrzymał kartkę.';
+      } else if (type === 'injury') {
+        notificationInstructions.textContent = 'Wybierz kontuzjowanego zawodnika.';
+      } else if (type === 'goal') {
+        notificationInstructions.textContent = 'Wybierz zawodnika, który strzelił gola.';
+      }
+      
+      // Aktualizuj podgląd powiadomienia
+      updateNotificationPreview(type);
+      
+      // Wyczyść zaznaczenie zawodników
+      clearPlayerSelection();
+    });
+  });
+}
+
+// Funkcja do czyszczenia zaznaczenia zawodników
+function clearPlayerSelection() {
+  const selectedPlayers = document.querySelectorAll('.player-item.selected');
+  selectedPlayers.forEach(player => {
+    player.classList.remove('selected');
+  });
+  
+  // Wyczyść tablicę wybranych zawodników
+  window.selectedPlayers = [];
+}
+
+// Funkcja do inicjalizacji przycisków wyboru wszystkich/czyszczenia
+function setupTeamSelectionButtons() {
+  // Przycisk "Zaznacz wszystkich" dla gospodarzy
+  document.getElementById('select-all-home').addEventListener('click', function() {
+    const homePlayers = document.querySelectorAll('#home-players-list .player-item');
+    homePlayers.forEach(player => {
+      if (!player.classList.contains('selected')) {
+        player.click(); // Symuluj kliknięcie, aby wywołać togglePlayerSelection
+      }
+    });
+  });
+  
+  // Przycisk "Wyczyść" dla gospodarzy
+  document.getElementById('clear-home').addEventListener('click', function() {
+    const selectedHomePlayers = document.querySelectorAll('#home-players-list .player-item.selected');
+    selectedHomePlayers.forEach(player => {
+      player.click(); // Symuluj kliknięcie, aby wywołać togglePlayerSelection
+    });
+  });
+  
+  // Przycisk "Zaznacz wszystkich" dla gości
+  document.getElementById('select-all-away').addEventListener('click', function() {
+    const awayPlayers = document.querySelectorAll('#away-players-list .player-item');
+    awayPlayers.forEach(player => {
+      if (!player.classList.contains('selected')) {
+        player.click(); // Symuluj kliknięcie, aby wywołać togglePlayerSelection
+      }
+    });
+  });
+  
+  // Przycisk "Wyczyść" dla gości
+  document.getElementById('clear-away').addEventListener('click', function() {
+    const selectedAwayPlayers = document.querySelectorAll('#away-players-list .player-item.selected');
+    selectedAwayPlayers.forEach(player => {
+      player.click(); // Symuluj kliknięcie, aby wywołać togglePlayerSelection
+    });
+  });
+}
+
+// Inicjalizacja wszystkich funkcji związanych z powiadomieniami
+function initializeNotifications() {
+  setupNotificationButtons();
+  setupTeamSelectionButtons();
+  loadPlayers(); // Załaduj listę graczy
+}
+
+// Dodaj tę funkcję do sprawdzania stanu timera
+async function checkTimerState() {
+  try {
+    const response = await fetch('/timer-state');
+    const data = await response.json();
+    
+    // Aktualizuj zmienną globalną i wygląd przycisku
+    isTimerRunning = data.running;
+    updateTimerToggleButton(isTimerRunning);
+  } catch (error) {
+    console.error('Błąd sprawdzania stanu timera:', error);
+  }
+}
+
+// Dodaj wywołanie tej funkcji w istniejącym event listenerze load
+window.addEventListener('load', function() {
+  setupTimerEdit();
+  loadInitialSettings();
+  loadPlayers();
+  updateMicButton();
+  checkTimerState(); // Dodaj to wywołanie
+});

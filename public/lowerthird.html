@@ -66,16 +66,17 @@
       playerOut.className = 'player out';
       const outSurname = data.playerOut.lastname;
 
+      // Używamy emoji bezpośrednio zamiast prostokątów tła
       let indicatorHtml = '';
       switch (data.type) {
         case 'change':
           indicatorHtml = '<span class="arrow">➡️</span>';
           break;
         case 'yellow-card':
-          indicatorHtml = '<span class="indicator yellow-card"></span>';
+          indicatorHtml = '<span class="indicator yellow-card">🟨</span>';
           break;
         case 'red-card':
-          indicatorHtml = '<span class="indicator red-card"></span>';
+          indicatorHtml = '<span class="indicator red-card">🟥</span>';
           break;
         case 'injury':
           indicatorHtml = '<span class="indicator injury">➕</span>';
@@ -87,10 +88,9 @@
           indicatorHtml = '<span class="indicator unknown">?</span>';
       }
 
-      // Nowa kolejność: [indicatorHtml][numer zawodnika][nazwisko]
+      // Nowa struktura: [indicatorHtml][nazwisko] - bez numeru zawodnika
       playerOut.innerHTML = `
         ${indicatorHtml}
-        <span class="number">${data.playerOut.number}</span>
         <span class="name">${outSurname}</span>
       `;
       playerList.appendChild(playerOut);
@@ -99,10 +99,9 @@
         const playerIn = document.createElement('div');
         playerIn.className = 'player in';
         const inSurname = data.playerIn.lastname;
-        // Nowa kolejność dla playerIn: [arrow][numer zawodnika][nazwisko]
+        // Nowa struktura dla playerIn: [arrow][nazwisko] - bez numeru zawodnika
         playerIn.innerHTML = `
           <span class="arrow">⬅️</span>
-          <span class="number">${data.playerIn.number}</span>
           <span class="name">${inSurname}</span>
         `;
         playerList.appendChild(playerIn);

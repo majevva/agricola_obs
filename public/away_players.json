@@ -1,0 +1,392 @@
+[
+  {
+    "number": 1,
+    "firstname": "Artur",
+    "lastname": "Olszewski",
+    "position": "BR"
+  },
+  {
+    "number": 3,
+    "firstname": "Konrad",
+    "lastname": "Elbruda",
+    "position": "SP"
+  },
+  {
+    "number": 4,
+    "firstname": "Dominik",
+    "lastname": "Zalewski",
+    "position": "LO"
+  },
+  {
+    "number": 5,
+    "firstname": "Bartek",
+    "lastname": "Mazur",
+    "position": "PP"
+  },
+  {
+    "number": 6,
+    "firstname": "Adrian",
+    "lastname": "Niedżwiecki",
+    "position": "N"
+  },
+  {
+    "number": 7,
+    "firstname": "Krystian",
+    "lastname": "Ciężar",
+    "position": "PŚ"
+  },
+  {
+    "number": 8,
+    "firstname": "Damian",
+    "lastname": "Dąbrowski",
+    "position": "N"
+  },
+  {
+    "number": 9,
+    "firstname": "Damian",
+    "lastname": "Dziczek",
+    "position": "ŚO"
+  },
+  {
+    "number": 11,
+    "firstname": "Arkadiusz",
+    "lastname": "Żebrowski",
+    "position": "PP"
+  },
+  {
+    "number": 12,
+    "firstname": "Oliwier",
+    "lastname": "Orłowski",
+    "position": "LŚ"
+  },
+  {
+    "number": 13,
+    "firstname": "Kewin",
+    "lastname": "Kulesza",
+    "position": "PŚ"
+  },
+  {
+    "number": 14,
+    "firstname": "Szymon",
+    "lastname": "Mazur",
+    "position": "N"
+  },
+  {
+    "number": 15,
+    "firstname": "Maciej",
+    "lastname": "Zieliński",
+    "position": "SP"
+  },
+  {
+    "number": 16,
+    "firstname": "Michał",
+    "lastname": "Biernacki",
+    "position": "PO"
+  },
+  {
+    "number": 17,
+    "firstname": "Maksymilian",
+    "lastname": "Bączek",
+    "position": "PP"
+  },
+  {
+    "number": 18,
+    "firstname": "Maciej",
+    "lastname": "Niedżwiecki",
+    "position": "ŚO"
+  },
+  {
+    "number": 19,
+    "firstname": "Marcel",
+    "lastname": "Staszewski",
+    "position": "N"
+  },
+  {
+    "number": 96,
+    "firstname": "Jakub",
+    "lastname": "Kozioł",
+    "position": "LO"
+  },
+  {
+    "number": "",
+    "firstname": "Kajetan",
+    "lastname": "Bachmura",
+    "position": "ŚO"
+  },
+  {
+    "number": "",
+    "firstname": "Bartłomiej",
+    "lastname": "Bączek",
+    "position": "PP"
+  },
+  {
+    "number": "",
+    "firstname": "Filip",
+    "lastname": "Bakuła",
+    "position": "LO"
+  },
+  {
+    "number": "",
+    "firstname": "Adrian",
+    "lastname": "Bazych",
+    "position": "SP"
+  },
+  {
+    "number": "",
+    "firstname": "Paweł",
+    "lastname": "Bojanowski",
+    "position": "LŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Tomasz",
+    "lastname": "Bojanowski",
+    "position": "PO"
+  },
+  {
+    "number": "",
+    "firstname": "Damian",
+    "lastname": "Chajdukowski",
+    "position": "PŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Dawid",
+    "lastname": "Czarnecki",
+    "position": "N"
+  },
+  {
+    "number": "",
+    "firstname": "Robert",
+    "lastname": "Dąbrowski",
+    "position": "SP"
+  },
+  {
+    "number": "",
+    "firstname": "Michał",
+    "lastname": "Dziczek",
+    "position": "LŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Kacper",
+    "lastname": "Filipiak",
+    "position": "PO"
+  },
+  {
+    "number": "",
+    "firstname": "Michał",
+    "lastname": "Filipiak",
+    "position": "SP"
+  },
+  {
+    "number": "",
+    "firstname": "Jakub",
+    "lastname": "Furtak",
+    "position": "N"
+  },
+  {
+    "number": "",
+    "firstname": "Patryk",
+    "lastname": "Giegiel",
+    "position": "LO"
+  },
+  {
+    "number": "",
+    "firstname": "Kacper",
+    "lastname": "Gut",
+    "position": "PP"
+  },
+  {
+    "number": "",
+    "firstname": "Michał",
+    "lastname": "Jabłonowski",
+    "position": "ŚO"
+  },
+  {
+    "number": "",
+    "firstname": "Kacper",
+    "lastname": "Kacprzak",
+    "position": "LŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Paweł",
+    "lastname": "Kobus",
+    "position": "SP"
+  },
+  {
+    "number": "",
+    "firstname": "Maciek",
+    "lastname": "Kowalewski",
+    "position": "PŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Bartosz",
+    "lastname": "Laskowski",
+    "position": "ŚO"
+  },
+  {
+    "number": "",
+    "firstname": "Łukasz",
+    "lastname": "Laskowski",
+    "position": "PP"
+  },
+  {
+    "number": "",
+    "firstname": "Mariusz",
+    "lastname": "Len",
+    "position": "N"
+  },
+  {
+    "number": "",
+    "firstname": "Tomasz",
+    "lastname": "Majrowski",
+    "position": "PO"
+  },
+  {
+    "number": "",
+    "firstname": "Sebastian ",
+    "lastname": "Marcińczyk",
+    "position": "SP"
+  },
+  {
+    "number": "",
+    "firstname": "Marcin",
+    "lastname": "Marszałek",
+    "position": "LŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Tomasz",
+    "lastname": "Marszałek",
+    "position": "PŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Paweł",
+    "lastname": "Marszałek",
+    "position": "PP"
+  },
+  {
+    "number": "",
+    "firstname": "Dawid",
+    "lastname": "Mikulak",
+    "position": "LO"
+  },
+  {
+    "number": "",
+    "firstname": "Wojciech",
+    "lastname": "Miś",
+    "position": "ŚO"
+  },
+  {
+    "number": "",
+    "firstname": "Szymon",
+    "lastname": "Olender",
+    "position": "N"
+  },
+  {
+    "number": "",
+    "firstname": "Dominik",
+    "lastname": "Olszewski",
+    "position": "PP"
+  },
+  {
+    "number": "",
+    "firstname": "Adrian",
+    "lastname": "Opalach",
+    "position": "LO"
+  },
+  {
+    "number": "",
+    "firstname": "Kacper",
+    "lastname": "Orzoł",
+    "position": "SP"
+  },
+  {
+    "number": "",
+    "firstname": "Kamil",
+    "lastname": "Osenkowski",
+    "position": "N"
+  },
+  {
+    "number": "",
+    "firstname": "Rafał",
+    "lastname": "Pac",
+    "position": "ŚO"
+  },
+  {
+    "number": "",
+    "firstname": "Szymon",
+    "lastname": "Roman",
+    "position": "LŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Gabriel",
+    "lastname": "Sachajczuk",
+    "position": "PŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Szymon",
+    "lastname": "Sendrowski",
+    "position": "PP"
+  },
+  {
+    "number": "",
+    "firstname": "Dawid ",
+    "lastname": "Śledziński",
+    "position": "SP"
+  },
+  {
+    "number": "",
+    "firstname": "Adam",
+    "lastname": "Suśniak",
+    "position": "PŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Łukasz",
+    "lastname": "Szymaniak",
+    "position": "N"
+  },
+  {
+    "number": "",
+    "firstname": "Mateusz",
+    "lastname": "Tumanowicz",
+    "position": "PP"
+  },
+  {
+    "number": "",
+    "firstname": "Denis",
+    "lastname": "Wiewiora",
+    "position": "SP"
+  },
+  {
+    "number": "",
+    "firstname": "Igor",
+    "lastname": "Witek",
+    "position": "LŚ"
+  },
+  {
+    "number": "",
+    "firstname": "Szymon",
+    "lastname": "Zarzycki",
+    "position": "ŚO"
+  },
+  {
+    "number": "",
+    "firstname": "Michał",
+    "lastname": "Żebrowski",
+    "position": "N"
+  },
+  {
+    "number": "",
+    "firstname": "Oskar",
+    "lastname": "Żuk",
+    "position": "LO"
+  }
+]

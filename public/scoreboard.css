@@ -29,7 +29,7 @@
 }
 
 .name {
-  font-size: 0.9em;
+  font-size: 1.4em;
   top: -1px;
   position: relative;
   padding: 0 10px;
@@ -143,49 +143,39 @@
 }
 
 .player-list {
-  position: absolute; /* Zmieniamy na position: absolute */
-  width: 180px; /* Taka sama szerokość jak .change-header */
-  left: 100px; /* Taka sama pozycja jak .change-header */
-  top: 34px; /* Umieszczamy dokładnie pod .change-header (34px to wysokość .change-header) */
+  position: absolute;
+  width: 180px;
+  left: 100px;
+  top: 34px;
   padding: 0;
   height: 0;
   overflow: hidden;
   opacity: 0;
-  animation: fadeInPlayerList 0.4s ease-out 0.9s forwards;
-}
-
-.player-list.two-players {
-  animation: expandPlayerListTwo 0.5s ease-out 1s forwards;
 }
 
 .player-list.one-player {
   animation: expandPlayerListOne 0.5s ease-out 1s forwards;
 }
 
+.player-list.two-players {
+  animation: expandPlayerListTwo 0.5s ease-out 1s forwards;
+}
+
 .player {
   display: flex;
   align-items: center;
-  font-size: 0.95em;
-  font-weight: 500;
-  margin: 0;
-  padding: 2px 0;
-  height: 26px;
-  position: relative;
-  transform: translateY(100%);
-  opacity: 0;
-  animation: riseUpPlayer 0.5s ease-out 1s forwards;
-  box-sizing: border-box;
+  gap: 8px;
+  padding-left: 0;
+  margin-left: -5px;
 }
 
 .player .number {
+  min-width: 25px;
   font-weight: 700;
-  margin-right: 6px;
-  width: 20px;
 }
 
 .player .name {
-  flex-grow: 0;
-  width: 110px;
+  flex-grow: 1;
 }
 
 .player .arrow {
@@ -204,45 +194,32 @@
 }
 
 .player .indicator {
-  margin-left: 6px;
-  display: inline-block;
-  line-height: 26px;
-}
-
-.player .yellow-card,
-.player .red-card {
-  width: 18px;
-  height: 26px;
+  font-size: 1.5em;
   display: inline-block;
   vertical-align: middle;
+  margin-right: 8px;
 }
 
 .player .yellow-card {
-  background-color: #ff0;
+  color: #ffd700; /* Żółty kolor dla emoji 🟨 */
 }
 
 .player .red-card {
-  background-color: #f00;
+  color: #ff0000; /* Czerwony kolor dla emoji 🟥 */
 }
 
 .player .injury {
   color: #f00;
   font-size: 1.2em;
-  display: inline-block;
-  vertical-align: middle;
 }
 
 .player .goal {
-  font-size: 1.5em;
-  display: inline-block;
-  vertical-align: middle;
+  color: #10b981; /* Zielony kolor dla emoji ⚽ */
 }
 
 .player .unknown {
   font-size: 1em;
   color: #fff;
-  display: inline-block;
-  vertical-align: middle;
 }
 
 @keyframes slideInFromLeft {
@@ -292,10 +269,12 @@
   0% {
     height: 0;
     opacity: 0;
+    transform: translateY(-10px);
   }
   100% {
     height: 28px;
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -303,10 +282,12 @@
   0% {
     height: 0;
     opacity: 0;
+    transform: translateY(-10px);
   }
   100% {
     height: 56px;
     opacity: 1;
+    transform: translateY(0);
   }
 }
 

@@ -1,8 +1,8 @@
 {
   "port": 3000,
   "teams": {
-    "home": "agricola.json",
-    "away": "opponent.json"
+    "home": "home_players.json",
+    "away": "away_players.json"
   },
   "obs": {
     "host": "192.168.1.156",

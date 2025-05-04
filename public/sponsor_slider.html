@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logo Scroller</title>
+  <!-- GSAP Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="sponsors-header">
+    <h2>Nasi Sponsorzy</h2>
+  </div>
+  
+  <section class="logo-scroller">
+    <div class="logo-scroller-content">
+      <div class="logo-scroller-items" role="marquee">
+        <div class="logo-scroller-row" id="sponsors-container">
+          <!-- Tutaj będą dynamicznie dodawani sponsorzy -->
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <div class="sponsors-footer">
+    Dziękujemy naszym sponsorom za wsparcie!
+  </div>
+  
+  <script>
+    // Tablica sponsorów - łatwa do edycji
+    const sponsors = [
+      {
+        id: "sponsor_1",
+        name: "JOANNA ROSTKOWSKA",
+        image: "sponsorzy/sponsor1.png"
+      },
+      {
+        id: "sponsor_2",
+        name: "MĘSKA STREFA<br>KRZYSZTOF OLCZYK",
+        image: "sponsorzy/sponsor2.png"
+      },
+      {
+        id: "sponsor_3",
+        name: "ROZBICCY UBEZPIECZENIA",
+        image: "sponsorzy/sponsor6.png"
+      },
+      {
+        id: "sponsor_4",
+        name: "BANK SPÓŁDZIELCZY<br>W OLSZTYNKU",
+        image: "sponsorzy/sponsor4.png"
+      },
+      {
+        id: "sponsor_5",
+        name: "FIEGE",
+        image: "sponsorzy/sponsor8.png"
+      },
+      {
+        id: "sponsor_6",
+        name: "FLESZSTUDIO",
+        image: "sponsorzy/sponsor3.png"
+      },
+      {
+        id: "sponsor_7",
+        name: "MIASTO OLSZTYNEK",
+        image: "sponsorzy/sponsor7.png"
+      }
+      // Dodaj nowych sponsorów tutaj, np:
+      // {
+      //   id: "sponsor_8",
+      //   name: "Nowy Sponsor",
+      //   image: "sponsorzy/sponsor8.png"
+      // },
+    ];
+
+    // Funkcja do generowania HTML dla sponsorów
+    function generateSponsorsHTML() {
+      const container = document.getElementById('sponsors-container');
+      
+      // Wyczyść kontener
+      container.innerHTML = '';
+      
+      // Dodaj każdego sponsora
+      sponsors.forEach(sponsor => {
+        const sponsorElement = document.createElement('div');
+        sponsorElement.className = 'logo-scroller-item';
+        sponsorElement.innerHTML = `
+          <span>
+            <img src="${sponsor.image}" alt="${sponsor.id}">
+            <div class="sponsor-name">${sponsor.name}</div>
+          </span>
+        `;
+        container.appendChild(sponsorElement);
+      });
+    }
+
+    let logoScrollers = {};
+    let activeLogoIndex = 0;
+    
+    // Funkcja do inicjalizacji slidera logo
+    function initiateLogoScroller(container = document) {
+      const rows = container.querySelectorAll(".logo-scroller-row");
+
+      rows.forEach(row => {
+        // Usuń istniejącą animację dla tego wiersza
+        if (logoScrollers[row]) {
+          logoScrollers[row].kill();
+          delete logoScrollers[row];
+        }
+
+        const rowItems = Array.from(row.children);
+        let rowWidth = row.scrollWidth;
+        const containerWidth = window.innerWidth;
+
+        // Zapobiegaj duplikowaniu klonów
+        if (!row.dataset.cloned) {
+          let totalWidth = rowWidth;
+
+          // Klonuj loga, aż całkowita szerokość będzie co najmniej dwukrotnie większa od szerokości kontenera
+          while (totalWidth < containerWidth * 2) {
+            rowItems.forEach(item => {
+              const clone = item.cloneNode(true);
+              row.appendChild(clone);
+              totalWidth += item.offsetWidth;
+            });
+          }
+
+          rowWidth = row.scrollWidth; // Aktualizuj szerokość wiersza po klonowaniu
+          row.dataset.cloned = "true";
+        }
+
+        // Resetuj pozycję wiersza na początek
+        gsap.set(row, { x: 0 });
+
+        // Oblicz prędkość dynamicznie, aby zachować spójność
+        let baseSpeed = 30; // Wolniejsza prędkość dla lepszej widoczności
+        let duration = (rowWidth / containerWidth) * baseSpeed;
+
+        // GSAP Infinite Scrolling
+        const tl = gsap.timeline({ repeat: -1, ease: "none" });
+
+        tl.to(row, {
+          x: `-${rowWidth / 2}px`, // Przesuń o połowę całkowitej szerokości
+          duration: duration,
+          ease: "none",
+          onComplete: function () {
+            gsap.set(row, { x: 0 }); // Resetuj pozycję, aby zapętlić płynnie
+          }
+        });
+
+        // Zapisz timeline do późniejszego czyszczenia
+        logoScrollers[row] = tl;
+      });
+    }
+
+    // Funkcja do podświetlania sponsorów po kolei
+    function highlightSponsors() {
+      // Pobierz wszystkie elementy logo
+      const allLogos = document.querySelectorAll('.logo-scroller-item');
+      
+      // Usuń klasę active ze wszystkich logo
+      allLogos.forEach(item => {
+        item.classList.remove('active');
+      });
+      
+      // Dodaj klasę active do aktualnego logo
+      if (allLogos.length > 0) {
+        allLogos[activeLogoIndex].classList.add('active');
+        
+        // Zwiększ indeks dla następnego podświetlenia
+        activeLogoIndex = (activeLogoIndex + 1) % allLogos.length;
+      }
+    }
+
+    // Funkcja do pobierania kolorów z ustawień scorebuga
+    async function loadScoreColors() {
+      try {
+        const response = await fetch('/initial-settings');
+        const data = await response.json();
+        
+        // Aktualizuj kolory nagłówka i stopki
+        const sponsorsHeader = document.querySelector('.sponsors-header');
+        const sponsorsFooter = document.querySelector('.sponsors-footer');
+        
+        if (sponsorsHeader && data.teamBackground) {
+          sponsorsHeader.style.backgroundColor = `${data.teamBackground}cc`; // cc = 80% opacity
+        }
+        
+        if (sponsorsFooter && data.teamBackground) {
+          sponsorsFooter.style.backgroundColor = `${data.teamBackground}cc`;
+        }
+        
+        // Aktualizuj kolor nazw sponsorów
+        const sponsorNames = document.querySelectorAll('.sponsor-name');
+        sponsorNames.forEach(name => {
+          if (data.teamBackground) {
+            name.style.backgroundColor = `${data.teamBackground}b3`; // b3 = 70% opacity
+          }
+        });
+        
+        // Aktualizuj kolor poświaty dla aktywnych logo
+        const style = document.createElement('style');
+        style.textContent = `
+          .logo-scroller-item.active {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25), 
+                        0 0 20px ${data.goalsBackground || '#00fc8a'}66; /* 66 = 40% opacity */
+          }
+        `;
+        document.head.appendChild(style);
+      } catch (error) {
+        console.error('Błąd pobierania kolorów:', error);
+      }
+    }
+    
+    // Inicjalizuj po załadowaniu strony
+    window.addEventListener('load', function() {
+      // Generuj HTML sponsorów
+      generateSponsorsHTML();
+      
+      // Inicjalizuj slider
+      initiateLogoScroller(document);
+      
+      // Załaduj kolory
+      loadScoreColors();
+      
+      // Rozpocznij podświetlanie sponsorów co 5 sekund
+      setInterval(highlightSponsors, 5000);
+    });
+
+    // Reinicjalizuj przy zmianie rozmiaru okna
+    window.addEventListener('resize', function() {
+      initiateLogoScroller(document);
+    });
+  </script>
+</body>
+</html>

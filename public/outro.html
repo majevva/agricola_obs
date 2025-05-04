@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agricola - Ekran Końcowy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Montserrat', sans-serif;
+    }
+    
+    .outro-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      background-color: transparent;
+    }
+    
+    .outro-content {
+      text-align: center;
+      padding: 2rem;
+      border-radius: 1rem;
+      background-color: rgba(0, 0, 0, 0.7);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      max-width: 80%;
+      animation: fadeIn 1.5s ease-in-out;
+    }
+    
+    .outro-title {
+      font-size: 3rem;
+      font-weight: 900;
+      margin-bottom: 1rem;
+      color: white;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+    
+    .outro-subtitle {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      color: #f0f0f0;
+    }
+    
+    .score-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 1rem 0 2rem;
+    }
+    
+    .team-score {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem 2rem;
+    }
+    
+    .team-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: white;
+    }
+    
+    .score {
+      font-size: 4rem;
+      font-weight: 900;
+      color: white;
+    }
+    
+    .score-divider {
+      font-size: 4rem;
+      font-weight: 700;
+      margin: 0 1rem;
+      color: rgba(255, 255, 255, 0.5);
+      align-self: flex-end;
+    }
+    
+    .team-color {
+      width: 100%;
+      height: 0.5rem;
+      border-radius: 0.25rem;
+      margin-top: 0.5rem;
+    }
+    
+    .outro-footer {
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 1rem;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <div class="outro-container">
+    <div class="outro-content">
+      <div class="outro-title">Koniec Meczu</div>
+      <div class="outro-subtitle">Wynik końcowy</div>
+      
+      <div class="score-container">
+        <div class="team-score">
+          <div class="team-name" id="home-team-name">GOSPODARZE</div>
+          <div class="score pulse" id="home-score">0</div>
+          <div class="team-color" id="home-color"></div>
+        </div>
+        
+        <div class="score-divider">:</div>
+        
+        <div class="team-score">
+          <div class="team-name" id="away-team-name">GOŚCIE</div>
+          <div class="score pulse" id="away-score">0</div>
+          <div class="team-color" id="away-color"></div>
+        </div>
+      </div>
+      
+      <div class="outro-footer">Dziękujemy za oglądanie!</div>
+    </div>
+  </div>
+
+  <script>
+    // Funkcja do pobierania danych z serwera
+    async function loadScoreData() {
+      try {
+        const response = await fetch('/scorebug-data');
+        const data = await response.json();
+        
+        // Aktualizacja nazw drużyn
+        document.getElementById('home-team-name').textContent = data.homeName || 'GOSPODARZE';
+        document.getElementById('away-team-name').textContent = data.awayName || 'GOŚCIE';
+        
+        // Aktualizacja wyników
+        document.getElementById('home-score').textContent = data.homeScore || '0';
+        document.getElementById('away-score').textContent = data.awayScore || '0';
+        
+        // Aktualizacja kolorów
+        document.getElementById('home-color').style.backgroundColor = data.homeColor || '#C8102E';
+        document.getElementById('away-color').style.backgroundColor = data.awayColor || '#1B449C';
+        
+        // Dodatkowe style dla kontenera
+        const outroContent = document.querySelector('.outro-content');
+        outroContent.style.backgroundColor = `${data.teamBackground || '#34003a'}cc`; // cc = 80% opacity
+        
+        // Określenie zwycięzcy
+        const homeScore = parseInt(data.homeScore) || 0;
+        const awayScore = parseInt(data.awayScore) || 0;
+        
+        const homeScoreElement = document.getElementById('home-score');
+        const awayScoreElement = document.getElementById('away-score');
+        
+        // Resetuj klasy
+        homeScoreElement.classList.remove('pulse');
+        awayScoreElement.classList.remove('pulse');
+        
+        // Dodaj animację dla zwycięzcy
+        if (homeScore > awayScore) {
+          homeScoreElement.classList.add('pulse');
+        } else if (awayScore > homeScore) {
+          awayScoreElement.classList.add('pulse');
+        } else {
+          // Remis - obie drużyny pulsują
+          homeScoreElement.classList.add('pulse');
+          awayScoreElement.classList.add('pulse');
+        }
+      } catch (error) {
+        console.error('Błąd pobierania danych:', error);
+      }
+    }
+    
+    // Załaduj dane przy starcie
+    loadScoreData();
+    
+    // Odświeżaj dane co 5 sekund
+    setInterval(loadScoreData, 5000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agricola - Ekran Startowy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Montserrat', sans-serif;
+    }
+    
+    .intro-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      background-color: transparent;
+    }
+    
+    .intro-content {
+      text-align: center;
+      padding: 2rem;
+      border-radius: 1rem;
+      background-color: rgba(0, 0, 0, 0.7);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      max-width: 80%;
+      animation: fadeIn 1.5s ease-in-out;
+    }
+    
+    .intro-title {
+      font-size: 3rem;
+      font-weight: 900;
+      margin-bottom: 1rem;
+      color: white;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+    
+    .intro-subtitle {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      color: #f0f0f0;
+    }
+    
+    .match-info {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 1rem 0 2rem;
+    }
+    
+    .team-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem 2rem;
+    }
+    
+    .team-name {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: white;
+    }
+    
+    .team-logo {
+      width: 120px;
+      height: 120px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    
+    .team-logo img {
+      max-width: 100px;
+      max-height: 100px;
+      object-fit: contain;
+    }
+    
+    .vs-divider {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 0 2rem;
+      color: rgba(255, 255, 255, 0.7);
+      align-self: center;
+    }
+    
+    .team-color {
+      width: 100%;
+      height: 0.5rem;
+      border-radius: 0.25rem;
+      margin-top: 0.5rem;
+    }
+    
+    .match-details {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 0.5rem;
+    }
+    
+    .match-location, .match-time, .match-date {
+      font-size: 1.2rem;
+      color: white;
+      margin: 0.3rem 0;
+    }
+    
+    .match-location i, .match-time i, .match-date i {
+      margin-right: 0.5rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .countdown {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: white;
+      margin: 1.5rem 0;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      animation: pulse 2s infinite ease-in-out;
+    }
+    
+    .intro-footer {
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 1rem;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .social-media {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    .social-icon {
+      font-size: 1.5rem;
+      color: white;
+      transition: transform 0.3s ease;
+    }
+    
+    .social-icon:hover {
+      transform: scale(1.2);
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div class="intro-container">
+    <div class="intro-content">
+      <div class="intro-title">Już wkrótce</div>
+      <div class="intro-subtitle">Transmisja na żywo</div>
+      
+      <div class="match-info">
+        <div class="team-container">
+          <div class="team-name" id="home-team-name">GOSPODARZE</div>
+          <div class="team-logo">
+            <img id="home-logo" src="logo/home-logo.png" alt="Logo gospodarzy">
+          </div>
+          <div class="team-color" id="home-color"></div>
+        </div>
+        
+        <div class="vs-divider">VS</div>
+        
+        <div class="team-container">
+          <div class="team-name" id="away-team-name">GOŚCIE</div>
+          <div class="team-logo">
+            <img id="away-logo" src="logo/away-logo.png" alt="Logo gości">
+          </div>
+          <div class="team-color" id="away-color"></div>
+        </div>
+      </div>
+      
+      <div class="match-details">
+        <div class="match-date">
+          <i class="fas fa-calendar-alt"></i> <span id="match-date">Niedziela, 15 maja 2023</span>
+        </div>
+        <div class="match-time">
+          <i class="fas fa-clock"></i> <span id="match-time">16:00</span>
+        </div>
+        <div class="match-location">
+          <i class="fas fa-map-marker-alt"></i> <span id="match-location">Stadion Miejski, Łomża</span>
+        </div>
+      </div>
+      
+      <div class="countdown" id="countdown">Rozpoczęcie za: 00:15:00</div>
+      
+      <div class="social-media">
+        <a href="#" class="social-icon"><i class="fab fa-facebook"></i></a>
+        <a href="#" class="social-icon"><i class="fab fa-youtube"></i></a>
+        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+      </div>
+      
+      <div class="intro-footer">Dziękujemy za dołączenie do transmisji!</div>
+    </div>
+  </div>
+
+  <script>
+    // Funkcja do pobierania danych z serwera
+    async function loadMatchData() {
+      try {
+        const response = await fetch('/scorebug-data');
+        const data = await response.json();
+        
+        // Aktualizacja nazw drużyn
+        document.getElementById('home-team-name').textContent = data.homeName || 'GOSPODARZE';
+        document.getElementById('away-team-name').textContent = data.awayName || 'GOŚCIE';
+        
+        // Aktualizacja kolorów
+        document.getElementById('home-color').style.backgroundColor = data.homeColor || '#C8102E';
+        document.getElementById('away-color').style.backgroundColor = data.awayColor || '#1B449C';
+        
+        // Dodatkowe style dla kontenera
+        const introContent = document.querySelector('.intro-content');
+        introContent.style.backgroundColor = `${data.teamBackground || '#34003a'}cc`; // cc = 80% opacity
+        
+        // Możesz również zaktualizować inne elementy, jeśli masz te dane w API
+        // np. lokalizację, datę, czas meczu
+      } catch (error) {
+        console.error('Błąd pobierania danych:', error);
+      }
+    }
+    
+    // Funkcja do aktualizacji odliczania
+    function updateCountdown() {
+      // Tutaj możesz ustawić docelową datę i godzinę meczu
+      // Dla przykładu ustawiam odliczanie na 30 minut od teraz
+      const now = new Date();
+      const targetTime = new Date(now.getTime() + 30 * 60 * 1000);
+      
+      // Alternatywnie, możesz ustawić konkretną datę i godzinę:
+      // const targetTime = new Date('2023-05-15T16:00:00');
+      
+      function updateTimer() {
+        const currentTime = new Date();
+        const diff = targetTime - currentTime;
+        
+        if (diff <= 0) {
+          document.getElementById('countdown').textContent = 'Mecz rozpoczęty!';
+          return;
+        }
+        
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        const formattedHours = hours.toString().padStart(2, '0');
+        const formattedMinutes = minutes.toString().padStart(2, '0');
+        const formattedSeconds = seconds.toString().padStart(2, '0');
+        
+        document.getElementById('countdown').textContent = `Rozpoczęcie za: ${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+      }
+      
+      // Aktualizuj timer co sekundę
+      updateTimer();
+      setInterval(updateTimer, 1000);
+    }
+    
+    // Funkcja do ustawiania daty meczu
+    function setMatchDate() {
+      const date = new Date();
+      const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+      const formattedDate = date.toLocaleDateString('pl-PL', options);
+      document.getElementById('match-date').textContent = formattedDate;
+      
+      // Ustaw czas meczu (dla przykładu ustawiam na 2 godziny od teraz)
+      const matchTime = new Date(date.getTime() + 2 * 60 * 60 * 1000);
+      const timeOptions = { hour: '2-digit', minute: '2-digit' };
+      document.getElementById('match-time').textContent = matchTime.toLocaleTimeString('pl-PL', timeOptions);
+    }
+    
+    // Załaduj dane przy starcie
+    loadMatchData();
+    updateCountdown();
+    setMatchDate();
+    
+    // Odświeżaj dane co 10 sekund
+    setInterval(loadMatchData, 10000);
+  </script>
+</body>
+</html>
