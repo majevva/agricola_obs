@@ -7,12 +7,52 @@
   <!-- GSAP Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    body, html {
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    
+    /* Główny kontener - flex column aby elementy były jeden pod drugim */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    /* Slider zajmuje dostępną przestrzeń */
+    .logo-scroller {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+    
+    /* Usuwamy absolutne pozycjonowanie stopki */
+    .sponsors-footer {
+      position: relative;
+      bottom: auto;
+      left: auto;
+      margin: 0;
+      padding: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    
+    /* Zmniejszamy rozmiar logo */
+    .logo-scroller-item span img {
+      max-height: 80px;
+    }
+    
+    /* Zmniejszamy odstęp między elementami */
+    .logo-scroller-row {
+      gap: 30px;
+    }
+  </style>
 </head>
 <body>
-  <div class="sponsors-header">
-    <h2>Nasi Sponsorzy</h2>
-  </div>
-  
   <section class="logo-scroller">
     <div class="logo-scroller-content">
       <div class="logo-scroller-items" role="marquee">
@@ -178,13 +218,8 @@
         const response = await fetch('/initial-settings');
         const data = await response.json();
         
-        // Aktualizuj kolory nagłówka i stopki
-        const sponsorsHeader = document.querySelector('.sponsors-header');
+        // Aktualizuj kolory stopki
         const sponsorsFooter = document.querySelector('.sponsors-footer');
-        
-        if (sponsorsHeader && data.teamBackground) {
-          sponsorsHeader.style.backgroundColor = `${data.teamBackground}cc`; // cc = 80% opacity
-        }
         
         if (sponsorsFooter && data.teamBackground) {
           sponsorsFooter.style.backgroundColor = `${data.teamBackground}cc`;
@@ -202,8 +237,8 @@
         const style = document.createElement('style');
         style.textContent = `
           .logo-scroller-item.active {
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25), 
-                        0 0 20px ${data.goalsBackground || '#00fc8a'}66; /* 66 = 40% opacity */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25), 
+                        0 0 10px ${data.goalsBackground || '#00fc8a'}66; /* 66 = 40% opacity */
           }
         `;
         document.head.appendChild(style);

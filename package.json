@@ -7,6 +7,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "chalk": "^4.1.2",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "obs-websocket-js": "^5.0.0"

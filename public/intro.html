@@ -181,7 +181,7 @@
         <div class="team-container">
           <div class="team-name" id="home-team-name">GOSPODARZE</div>
           <div class="team-logo">
-            <img id="home-logo" src="logo/home-logo.png" alt="Logo gospodarzy">
+            <img id="home-logo" src="home_logo.png" alt="Logo gospodarzy">
           </div>
           <div class="team-color" id="home-color"></div>
         </div>
@@ -191,7 +191,7 @@
         <div class="team-container">
           <div class="team-name" id="away-team-name">GOŚCIE</div>
           <div class="team-logo">
-            <img id="away-logo" src="logo/away-logo.png" alt="Logo gości">
+            <img id="away-logo" src="away_logo.jpg" alt="Logo gości">
           </div>
           <div class="team-color" id="away-color"></div>
         </div>
@@ -199,17 +199,17 @@
       
       <div class="match-details">
         <div class="match-date">
-          <i class="fas fa-calendar-alt"></i> <span id="match-date">Niedziela, 15 maja 2023</span>
+          <i class="fas fa-calendar-alt"></i> <span id="match-date">Niedziela, 4 maja 2025</span>
         </div>
         <div class="match-time">
-          <i class="fas fa-clock"></i> <span id="match-time">16:00</span>
+          <i class="fas fa-clock"></i> <span id="match-time">13:00</span>
         </div>
         <div class="match-location">
-          <i class="fas fa-map-marker-alt"></i> <span id="match-location">Stadion Miejski, Łomża</span>
+          <i class="fas fa-map-marker-alt"></i> <span id="match-location">Boisko w Orżynach</span>
         </div>
       </div>
       
-      <div class="countdown" id="countdown">Rozpoczęcie za: 00:15:00</div>
+      <div class="countdown" id="countdown">Rozpoczęcie za: 00:14:00</div>
       
       <div class="social-media">
         <a href="#" class="social-icon"><i class="fab fa-facebook"></i></a>
@@ -253,10 +253,10 @@
       // Tutaj możesz ustawić docelową datę i godzinę meczu
       // Dla przykładu ustawiam odliczanie na 30 minut od teraz
       const now = new Date();
-      const targetTime = new Date(now.getTime() + 30 * 60 * 1000);
+      //const targetTime = new Date(now.getTime() + 30 * 60 * 1000);
       
       // Alternatywnie, możesz ustawić konkretną datę i godzinę:
-      // const targetTime = new Date('2023-05-15T16:00:00');
+      const targetTime = new Date('2025-05-04T13:00:00');
       
       function updateTimer() {
         const currentTime = new Date();
@@ -290,10 +290,8 @@
       const formattedDate = date.toLocaleDateString('pl-PL', options);
       document.getElementById('match-date').textContent = formattedDate;
       
-      // Ustaw czas meczu (dla przykładu ustawiam na 2 godziny od teraz)
-      const matchTime = new Date(date.getTime() + 2 * 60 * 60 * 1000);
-      const timeOptions = { hour: '2-digit', minute: '2-digit' };
-      document.getElementById('match-time').textContent = matchTime.toLocaleTimeString('pl-PL', timeOptions);
+      // Ustaw stały czas meczu na 13:00
+      document.getElementById('match-time').textContent = '13:00';
     }
     
     // Załaduj dane przy starcie

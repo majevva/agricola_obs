@@ -8,6 +8,53 @@
   <link rel="stylesheet" href="scoreboard.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Dodaj te style do sekcji head */
+    .notification-type-btn.active {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+    
+    .notification-type-btn.active::after {
+      content: '✓';
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 24px;
+      height: 24px;
+      background-color: #10b981;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    /* Popraw układ podglądu powiadomienia */
+    #notification-preview {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    /* Zmniejsz odstęp między krokami */
+    .workflow-step {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background-color: rgba(31, 41, 55, 0.5);
+      border-radius: 0.5rem;
+    }
+    
+    /* Popraw widoczność instrukcji */
+    #notification-instructions {
+      font-weight: bold;
+      padding: 0.75rem;
+      background-color: rgba(107, 70, 193, 0.2);
+      border-left: 4px solid #8b5cf6;
+    }
+  </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-4">
   <div class="max-w-6xl mx-auto">
@@ -348,29 +395,34 @@
         <!-- Nowy, bardziej intuicyjny interfejs powiadomień -->
         <div class="notification-workflow">
           <!-- Krok 1: Wybór typu powiadomienia -->
-          <div class="workflow-step mb-6">
-            <h3 class="text-lg font-bold mb-3">Krok 1: Wybierz typ powiadomienia</h3>
-            <div class="notification-types grid grid-cols-1 md:grid-cols-5 gap-3">
-              <button id="notification-type-change" class="notification-type-btn bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-bold transition flex flex-col items-center" data-type="change">
-                <i class="fas fa-exchange-alt text-2xl mb-2"></i>
+          <div class="workflow-step">
+            <h3 class="text-lg font-bold mb-2">Krok 1: Wybierz typ powiadomienia</h3>
+            <div class="notification-types grid grid-cols-1 md:grid-cols-5 gap-2">
+              <button id="notification-type-change" class="notification-type-btn bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg font-bold transition flex flex-col items-center" data-type="change">
+                <i class="fas fa-exchange-alt text-xl mb-1"></i>
                 <span>Zmiana</span>
               </button>
-              <button id="notification-type-yellow-card" class="notification-type-btn bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-4 rounded-lg font-bold transition flex flex-col items-center" data-type="yellow-card">
-                <i class="fas fa-square text-2xl mb-2" style="color: #facc15;"></i>
+              <button id="notification-type-yellow-card" class="notification-type-btn bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-lg font-bold transition flex flex-col items-center" data-type="yellow-card">
+                <i class="fas fa-square text-xl mb-1" style="color: #facc15;"></i>
                 <span>Żółta Kartka</span>
               </button>
-              <button id="notification-type-red-card" class="notification-type-btn bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-bold transition flex flex-col items-center" data-type="red-card">
-                <i class="fas fa-square text-2xl mb-2" style="color: #ef4444;"></i>
+              <button id="notification-type-red-card" class="notification-type-btn bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg font-bold transition flex flex-col items-center" data-type="red-card">
+                <i class="fas fa-square text-xl mb-1" style="color: #ef4444;"></i>
                 <span>Czerwona Kartka</span>
               </button>
-              <button id="notification-type-injury" class="notification-type-btn bg-gray-600 hover:bg-gray-700 text-white py-3 px-4 rounded-lg font-bold transition flex flex-col items-center" data-type="injury">
-                <i class="fas fa-medkit text-2xl mb-2"></i>
+              <button id="notification-type-injury" class="notification-type-btn bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg font-bold transition flex flex-col items-center" data-type="injury">
+                <i class="fas fa-medkit text-xl mb-1"></i>
                 <span>Kontuzja</span>
               </button>
-              <button id="notification-type-goal" class="notification-type-btn bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-bold transition flex flex-col items-center" data-type="goal">
-                <i class="fas fa-futbol text-2xl mb-2"></i>
+              <button id="notification-type-goal" class="notification-type-btn bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg font-bold transition flex flex-col items-center" data-type="goal">
+                <i class="fas fa-futbol text-xl mb-1"></i>
                 <span>Gol</span>
               </button>
+            </div>
+            <div class="mt-2 p-2 rounded-lg bg-gray-700">
+              <p id="notification-instructions" class="text-center">
+                Wybierz typ powiadomienia, aby zobaczyć instrukcje.
+              </p>
             </div>
           </div>
           

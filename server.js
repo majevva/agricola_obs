@@ -5,6 +5,18 @@ const OBSWebSocket = require('obs-websocket-js').default;
 const app = express();
 const config = require('./config.json');
 const port = config.port;
+const chalk = require('chalk');
+
+// Konfiguracja kolorów dla różnych typów logów
+const log = {
+  system: (message) => console.log(chalk.bgBlue.white(' SYSTEM ') + ' ' + message),
+  obs: (message) => console.log(chalk.bgMagenta.white(' OBS ') + ' ' + message),
+  timer: (message) => console.log(chalk.bgYellow.black(' TIMER ') + ' ' + message),
+  error: (message) => console.log(chalk.bgRed.white(' ERROR ') + ' ' + message),
+  success: (message) => console.log(chalk.bgGreen.black(' SUCCESS ') + ' ' + message),
+  info: (message) => console.log(chalk.bgCyan.black(' INFO ') + ' ' + message),
+  stream: (message) => console.log(chalk.bgGreen.white(' STREAM ') + ' ' + message)
+};
 
 const obs = new OBSWebSocket();
 
@@ -49,14 +61,14 @@ async function connectToOBS() {
   const tryConnect = async () => {
     try {
       await obs.connect(`ws://${config.obs.host}:${config.obs.port}`, config.obs.password);
-      console.log('Connected to OBS');
+      log.success(`Połączono z OBS WebSocket na ${config.obs.host}:${config.obs.port}`);
 
       obs.on('StreamStateChanged', (data) => {
-        console.log(data.outputActive ? 'Stream Started' : 'Stream Stopped');
+        log.stream(data.outputActive ? 'Stream rozpoczęty' : 'Stream zakończony');
       });
 
       obs.on('ConnectionClosed', () => {
-        console.log('OBS connection closed. Attempting to reconnect...');
+        log.error('Połączenie z OBS zostało zamknięte. Próba ponownego połączenia...');
         setTimeout(tryConnect, backoffDelay);
       });
 
@@ -64,24 +76,25 @@ async function connectToOBS() {
       try {
         const micStatus = await obs.call('GetInputMute', { inputName: 'Mikrofon' });
         micMuted = micStatus.muted;
+        log.info(`Stan mikrofonu: ${micMuted ? 'wyciszony' : 'aktywny'}`);
       } catch (error) {
-        console.error('Error checking microphone state:', error);
+        log.error(`Błąd sprawdzania stanu mikrofonu: ${error.message}`);
       }
       
       // Reset retry counter on successful connection
       retries = 0;
       backoffDelay = 5000;
     } catch (error) {
-      console.error('OBS connection error:', error);
+      log.error(`Błąd połączenia z OBS: ${error.message}`);
       retries++;
       
       if (retries < maxRetries) {
         // Exponential backoff
         backoffDelay = Math.min(30000, backoffDelay * 1.5); 
-        console.log(`Reconnecting to OBS (${retries}/${maxRetries}) in ${backoffDelay/1000} seconds...`);
+        log.info(`Ponowna próba połączenia z OBS (${retries}/${maxRetries}) za ${backoffDelay/1000} sekund...`);
         setTimeout(tryConnect, backoffDelay);
       } else {
-        console.error('Failed to connect to OBS after maximum attempts. Will retry in 60 seconds.');
+        log.error('Nie udało się połączyć z OBS po maksymalnej liczbie prób. Kolejna próba za 60 sekund.');
         retries = 0;
         setTimeout(tryConnect, 60000);
       }
@@ -102,9 +115,9 @@ function startServerTimer() {
       scorebugData.minute = pad(minutes);
       scorebugData.second = pad(secs);
     }, 1000);
-    console.log('Server timer started');
+    log.timer('Timer uruchomiony');
   } else {
-    console.log('Timer already running');
+    log.timer('Timer już działa');
   }
 }
 
@@ -113,6 +126,7 @@ function stopServerTimer() {
     timerState.running = false;
     clearInterval(timerInterval);
     timerInterval = null;
+    log.timer('Timer zatrzymany');
   }
 }
 
@@ -121,6 +135,7 @@ function resetServerTimer() {
   timerState.seconds = 0;
   scorebugData.minute = '00';
   scorebugData.second = '00';
+  log.timer('Timer zresetowany');
 }
 
 function pad(number) {
@@ -156,23 +171,22 @@ app.get('/initial-settings', (req, res) => {
 
 app.get('/players-data', async (req, res) => {
   try {
-    console.log(`Próba odczytu pliku: public/${config.teams.home}`);
+    log.info(`Ładowanie pliku zawodników gospodarzy: ${config.teams.home}`);
     const homePlayers = await fs.readFile(`public/${config.teams.home}`, 'utf8');
-    console.log(`Próba odczytu pliku: public/${config.teams.away}`);
+    log.info(`Ładowanie pliku zawodników gości: ${config.teams.away}`);
     const awayPlayers = await fs.readFile(`public/${config.teams.away}`, 'utf8');
     
-    console.log('Parsowanie pliku home players');
     const homePlayersJson = JSON.parse(homePlayers);
-    
-    console.log('Parsowanie pliku away players');
     const awayPlayersJson = JSON.parse(awayPlayers);
+    
+    log.success(`Załadowano ${homePlayersJson.length} zawodników gospodarzy i ${awayPlayersJson.length} zawodników gości`);
     
     res.json({
       home: homePlayersJson,
       away: awayPlayersJson
     });
   } catch (error) {
-    console.error('Błąd ładowania danych zawodników:', error);
+    log.error(`Błąd ładowania danych zawodników: ${error.message}`);
     res.status(500).json({ error: 'Błąd ładowania danych zawodników' });
   }
 });
@@ -182,7 +196,7 @@ app.get('/stream-status', async (req, res) => {
     const streamStatus = await obs.call('GetStreamStatus');
     res.json({ streaming: streamStatus.outputActive });
   } catch (error) {
-    console.error('Błąd pobierania statusu streamu:', error);
+    log.error(`Błąd pobierania statusu streamu: ${error.message}`);
     if (error.code === 'NOT_CONNECTED') {
       res.json({ streaming: false, error: 'Brak połączenia z OBS' });
     } else {
@@ -207,9 +221,10 @@ app.post('/toggle-mic', async (req, res) => {
     const { mute } = req.body;
     await obs.call('SetInputMute', { inputName: 'Mikrofon', inputMuted: mute });
     micMuted = mute;
+    log.info(`Mikrofon ${micMuted ? 'wyciszony' : 'aktywny'}`);
     res.json({ muted: micMuted });
   } catch (error) {
-    console.error('Błąd przełączania mikrofonu:', error);
+    log.error(`Błąd przełączania mikrofonu: ${error.message}`);
     res.status(500).json({ error: 'Błąd przełączania mikrofonu' });
   }
 });
@@ -234,47 +249,44 @@ app.post('/update-scorebug', (req, res) => {
       timerState.seconds = (parseInt(scorebugData.minute) || 0) * 60 + (parseInt(scorebugData.second) || 0);
     }
     
+    log.success(`Zaktualizowano scorebug: ${JSON.stringify(updates)}`);
     res.status(200).send('Scorebug updated');
   } catch (error) {
-    console.error('Error updating scorebug:', error);
+    log.error(`Błąd aktualizacji scorebug: ${error.message}`);
     res.status(500).send('Error updating scorebug');
   }
 });
 
 app.post('/update-time', (req, res) => {
   const { action, minute, second } = req.body;
-  console.log('Received time update request:', req.body);
+  log.timer(`Otrzymano prośbę zmiany czasu: ${JSON.stringify(req.body)}`);
   
   try {
     if (action === 'start') {
-      console.log('Starting timer');
       startServerTimer();
     } else if (action === 'pause') {
-      console.log('Pausing timer');
       stopServerTimer();
     } else if (action === 'reset') {
-      console.log('Resetting timer');
       resetServerTimer();
     } else if (action === 'set45') {
-      console.log('Setting timer to 45:00');
       stopServerTimer();
       timerState.seconds = 45 * 60;
       scorebugData.minute = '45';
       scorebugData.second = '00';
+      log.timer('Ustawiono timer na 45:00');
     } else if (action === 'setZero') {
-      console.log('Setting timer to 00:00');
       resetServerTimer();
     } else if (minute !== undefined && second !== undefined) {
-      console.log(`Setting timer to ${minute}:${second}`);
       stopServerTimer();
       scorebugData.minute = minute.toString().padStart(2, '0');
       scorebugData.second = second.toString().padStart(2, '0');
       timerState.seconds = (parseInt(minute) || 0) * 60 + (parseInt(second) || 0);
+      log.timer(`Ustawiono timer na ${scorebugData.minute}:${scorebugData.second}`);
     }
     
     res.status(200).send('Czas zaktualizowany');
   } catch (error) {
-    console.error('Error updating time:', error);
+    log.error(`Błąd aktualizacji czasu: ${error.message}`);
     res.status(500).send('Error updating time');
   }
 });
@@ -282,9 +294,11 @@ app.post('/update-time', (req, res) => {
 app.post('/update-score', (req, res) => {
   if (req.body.homeScore !== undefined) {
     scorebugData.homeScore = req.body.homeScore;
+    log.info(`Zaktualizowano wynik gospodarzy: ${scorebugData.homeScore}`);
   }
   if (req.body.awayScore !== undefined) {
     scorebugData.awayScore = req.body.awayScore;
+    log.info(`Zaktualizowano wynik gości: ${scorebugData.awayScore}`);
   }
   res.send('Wynik zaktualizowany');
 });
@@ -294,15 +308,17 @@ app.post('/update-notification', (req, res) => {
     ...req.body,
     timestamp: Date.now()
   };
+  log.info(`Wysłano powiadomienie typu: ${notificationData.type} dla drużyny: ${notificationData.team}`);
   res.send('Powiadomienie zaktualizowane');
 });
 
 app.post('/start-stream', async (req, res) => {
   try {
     await obs.call('StartStream');
+    log.stream('Stream uruchomiony');
     res.send('Stream uruchomiony');
   } catch (error) {
-    console.error('Błąd uruchamiania streamu:', error);
+    log.error(`Błąd uruchamiania streamu: ${error.message}`);
     res.status(500).send('Błąd uruchamiania streamu');
   }
 });
@@ -310,9 +326,10 @@ app.post('/start-stream', async (req, res) => {
 app.post('/stop-stream', async (req, res) => {
   try {
     await obs.call('StopStream');
+    log.stream('Stream zatrzymany');
     res.send('Stream zatrzymany');
   } catch (error) {
-    console.error('Błąd zatrzymywania streamu:', error);
+    log.error(`Błąd zatrzymywania streamu: ${error.message}`);
     res.status(500).send('Błąd zatrzymywania streamu');
   }
 });
@@ -321,9 +338,10 @@ app.post('/switch-scene', async (req, res) => {
   try {
     const { sceneName } = req.body;
     await obs.call('SetCurrentProgramScene', { sceneName });
+    log.obs(`Przełączono na scenę: ${sceneName}`);
     res.send(`Przełączono na scenę: ${sceneName}`);
   } catch (error) {
-    console.error('Błąd przełączania sceny:', error);
+    log.error(`Błąd przełączania sceny: ${error.message}`);
     res.status(500).send('Błąd przełączania sceny');
   }
 });
@@ -340,7 +358,7 @@ app.get('/health', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Server error:', err);
+  log.error(`Błąd serwera: ${err.message}`);
   res.status(500).json({ 
     error: 'Server error', 
     message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
@@ -348,5 +366,10 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(port, () => {
-  console.log(`Serwer działa na http://localhost:${port}`);
+  const serverUrl = `http://localhost:${port}`;
+  log.system('='.repeat(50));
+  log.system(`Panel Agricola OBS uruchomiony!`);
+  log.system(`Panel dostępny pod adresem: ${chalk.underline.cyan(serverUrl)}`);
+  log.system(`Naciśnij ${chalk.bold.yellow('Ctrl+C')} aby zatrzymać serwer`);
+  log.system('='.repeat(50));
 });

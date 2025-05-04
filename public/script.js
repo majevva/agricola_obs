@@ -104,6 +104,10 @@ async function loadPlayers() {
       throw new Error('Brak danych drużyn w odpowiedzi serwera');
     }
 
+    // Sortowanie zawodników po nazwisku (lastname)
+    data.home.sort((a, b) => a.lastname.localeCompare(b.lastname));
+    data.away.sort((a, b) => a.lastname.localeCompare(b.lastname));
+
     const homeList = document.getElementById('home-players-list');
     const awayList = document.getElementById('away-players-list');
 
@@ -114,7 +118,7 @@ async function loadPlayers() {
       const div = document.createElement('div');
       div.className = 'player-item bg-gray-700 p-2 rounded-lg cursor-pointer hover:bg-gray-600 transition';
       div.dataset.team = 'home';
-      div.textContent = `${player.number} ${player.lastname} (${player.position})`;
+      div.textContent = `${player.lastname} ${player.firstname}`;
       div.onclick = () => togglePlayerSelection(div, player);
       homeList.appendChild(div);
     });
@@ -123,7 +127,7 @@ async function loadPlayers() {
       const div = document.createElement('div');
       div.className = 'player-item bg-gray-700 p-2 rounded-lg cursor-pointer hover:bg-gray-600 transition';
       div.dataset.team = 'away';
-      div.textContent = `${player.number} ${player.lastname} (${player.position})`;
+      div.textContent = `${player.lastname} ${player.firstname}`;
       div.onclick = () => togglePlayerSelection(div, player);
       awayList.appendChild(div);
     });
@@ -206,12 +210,11 @@ async function updateNotificationPreview(type) {
 
   const outSurname = selectedPlayers[0].lastname;
   playerOut.innerHTML = `
-    <span class="number">${selectedPlayers[0].number}</span>
     <span class="name">${outSurname}</span>
     ${type === 'change' ? '<span class="arrow">➡️</span>' :
      type === 'yellow-card' ? '<span class="indicator yellow-card"></span>' :
      type === 'red-card' ? '<span class="indicator red-card"></span>' :
-     type === 'injury' ? '<span class="indicator injury">➕</span>' :
+     type === 'injury' ? '<span class="indicator injury">🩹</span>' :
      '<span class="indicator goal">⚽</span>'}
   `;
 
@@ -219,7 +222,6 @@ async function updateNotificationPreview(type) {
     playerIn.style.display = 'flex';
     const inSurname = selectedPlayers[1].lastname;
     playerIn.innerHTML = `
-      <span class="number">${selectedPlayers[1].number}</span>
       <span class="name">${inSurname}</span>
       <span class="arrow">⬅️</span>
     `;
@@ -746,40 +748,25 @@ window.addEventListener('load', function() {
   setupTimerEdit();
 });
 
-// Inicjalizacja przycisków typów powiadomień
-function setupNotificationButtons() {
-  const notificationTypeButtons = document.querySelectorAll('.notification-type-btn');
-  const notificationInstructions = document.getElementById('notification-instructions');
+// Dodaj tę funkcję do istniejącego kodu JavaScript
+function updateNotificationInstructions(type) {
+  const instructionsElement = document.getElementById('notification-instructions');
   
-  notificationTypeButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      // Usuń klasę active ze wszystkich przycisków
-      notificationTypeButtons.forEach(btn => btn.classList.remove('active'));
-      
-      // Dodaj klasę active do klikniętego przycisku
-      this.classList.add('active');
-      
-      // Pobierz typ powiadomienia z atrybutu data-type
-      const type = this.getAttribute('data-type');
-      
-      // Aktualizuj instrukcje w zależności od typu
-      if (type === 'change') {
-        notificationInstructions.textContent = 'Wybierz dwóch zawodników z tej samej drużyny - pierwszy wychodzi, drugi wchodzi.';
-      } else if (type === 'yellow-card' || type === 'red-card') {
-        notificationInstructions.textContent = 'Wybierz zawodnika, który otrzymał kartkę.';
-      } else if (type === 'injury') {
-        notificationInstructions.textContent = 'Wybierz kontuzjowanego zawodnika.';
-      } else if (type === 'goal') {
-        notificationInstructions.textContent = 'Wybierz zawodnika, który strzelił gola.';
-      }
-      
-      // Aktualizuj podgląd powiadomienia
-      updateNotificationPreview(type);
-      
-      // Wyczyść zaznaczenie zawodników
-      clearPlayerSelection();
-    });
-  });
+  // Aktualizuj instrukcje w zależności od typu powiadomienia
+  if (type === 'change') {
+    instructionsElement.textContent = 'Wybierz dwóch zawodników z tej samej drużyny - pierwszy wychodzi, drugi wchodzi.';
+  } else if (type === 'yellow-card') {
+    instructionsElement.textContent = 'Wybierz zawodnika, który otrzymał żółtą kartkę.';
+  } else if (type === 'red-card') {
+    instructionsElement.textContent = 'Wybierz zawodnika, który otrzymał czerwoną kartkę.';
+  } else if (type === 'injury') {
+    instructionsElement.textContent = 'Wybierz kontuzjowanego zawodnika.';
+  } else if (type === 'goal') {
+    instructionsElement.textContent = 'Wybierz zawodnika, który strzelił gola.';
+  }
+  
+  // Wyczyść zaznaczenie zawodników przy zmianie typu powiadomienia
+  clearPlayerSelection();
 }
 
 // Funkcja do czyszczenia zaznaczenia zawodników
@@ -790,74 +777,45 @@ function clearPlayerSelection() {
   });
   
   // Wyczyść tablicę wybranych zawodników
-  window.selectedPlayers = [];
+  selectedPlayers = [];
 }
 
-// Funkcja do inicjalizacji przycisków wyboru wszystkich/czyszczenia
-function setupTeamSelectionButtons() {
-  // Przycisk "Zaznacz wszystkich" dla gospodarzy
-  document.getElementById('select-all-home').addEventListener('click', function() {
-    const homePlayers = document.querySelectorAll('#home-players-list .player-item');
-    homePlayers.forEach(player => {
-      if (!player.classList.contains('selected')) {
-        player.click(); // Symuluj kliknięcie, aby wywołać togglePlayerSelection
-      }
+// Dodaj tę funkcję do inicjalizacji przycisków typów powiadomień
+function initNotificationButtons() {
+  const buttons = document.querySelectorAll('.notification-type-btn');
+  
+  buttons.forEach(button => {
+    button.addEventListener('click', function() {
+      // Usuń klasę active ze wszystkich przycisków
+      buttons.forEach(btn => btn.classList.remove('active'));
+      
+      // Dodaj klasę active do klikniętego przycisku
+      this.classList.add('active');
+      
+      // Pobierz typ powiadomienia z atrybutu data-type
+      const type = this.getAttribute('data-type');
+      
+      // Aktualizuj instrukcje
+      updateNotificationInstructions(type);
+      
+      // Aktualizuj podgląd powiadomienia
+      updateNotificationPreview(type);
     });
   });
   
-  // Przycisk "Wyczyść" dla gospodarzy
-  document.getElementById('clear-home').addEventListener('click', function() {
-    const selectedHomePlayers = document.querySelectorAll('#home-players-list .player-item.selected');
-    selectedHomePlayers.forEach(player => {
-      player.click(); // Symuluj kliknięcie, aby wywołać togglePlayerSelection
-    });
-  });
-  
-  // Przycisk "Zaznacz wszystkich" dla gości
-  document.getElementById('select-all-away').addEventListener('click', function() {
-    const awayPlayers = document.querySelectorAll('#away-players-list .player-item');
-    awayPlayers.forEach(player => {
-      if (!player.classList.contains('selected')) {
-        player.click(); // Symuluj kliknięcie, aby wywołać togglePlayerSelection
-      }
-    });
-  });
-  
-  // Przycisk "Wyczyść" dla gości
-  document.getElementById('clear-away').addEventListener('click', function() {
-    const selectedAwayPlayers = document.querySelectorAll('#away-players-list .player-item.selected');
-    selectedAwayPlayers.forEach(player => {
-      player.click(); // Symuluj kliknięcie, aby wywołać togglePlayerSelection
-    });
-  });
-}
-
-// Inicjalizacja wszystkich funkcji związanych z powiadomieniami
-function initializeNotifications() {
-  setupNotificationButtons();
-  setupTeamSelectionButtons();
-  loadPlayers(); // Załaduj listę graczy
-}
-
-// Dodaj tę funkcję do sprawdzania stanu timera
-async function checkTimerState() {
-  try {
-    const response = await fetch('/timer-state');
-    const data = await response.json();
-    
-    // Aktualizuj zmienną globalną i wygląd przycisku
-    isTimerRunning = data.running;
-    updateTimerToggleButton(isTimerRunning);
-  } catch (error) {
-    console.error('Błąd sprawdzania stanu timera:', error);
+  // Domyślnie wybierz pierwszy typ powiadomienia (zmiana)
+  const defaultButton = document.querySelector('.notification-type-btn[data-type="change"]');
+  if (defaultButton) {
+    defaultButton.classList.add('active');
+    updateNotificationInstructions('change');
   }
 }
 
-// Dodaj wywołanie tej funkcji w istniejącym event listenerze load
+// Wywołaj tę funkcję po załadowaniu strony
 window.addEventListener('load', function() {
   setupTimerEdit();
   loadInitialSettings();
   loadPlayers();
   updateMicButton();
-  checkTimerState(); // Dodaj to wywołanie
+  initNotificationButtons(); // Dodaj to wywołanie
 });
