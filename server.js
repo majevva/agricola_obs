@@ -1,11 +1,48 @@
 const express = require('express');
 const fs = require('fs').promises;
-// Poprawny import dla wersji 5.0.0
 const OBSWebSocket = require('obs-websocket-js').default;
 const app = express();
 const config = require('./config.json');
 const port = config.port;
 const chalk = require('chalk');
+const { exec } = require('child_process');
+const path = require('path');
+const fsSync = require('fs');
+const os = require('os');
+
+// Pobierz lokalny adres IP
+function getLocalIp() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+
+// Ścieżka do config.json
+const configPath = path.join(__dirname, 'config.json');
+
+// Wczytaj, zaktualizuj i zapisz config.json
+try {
+  let configRaw = fsSync.readFileSync(configPath, 'utf8');
+  // Usuń BOM jeśli występuje
+  if (configRaw.charCodeAt(0) === 0xFEFF) {
+    configRaw = configRaw.slice(1);
+  }
+  const config = JSON.parse(configRaw);
+  const localIp = getLocalIp();
+  if (config.obs && config.obs.host !== localIp) {
+    config.obs.host = localIp;
+    fsSync.writeFileSync(configPath, JSON.stringify(config, null, 4), 'utf8');
+    console.log(`Zaktualizowano obs.host w config.json na ${localIp}`);
+  }
+} catch (err) {
+  console.error('Błąd aktualizacji config.json:', err);
+}
 
 // Konfiguracja kolorów dla różnych typów logów
 const log = {
@@ -25,7 +62,7 @@ app.use(express.json());
 
 let scorebugData = {
   homeName: 'AGR',
-  awayName: 'BRZ',
+  awayName: 'LSN',
   homeScore: 0,
   awayScore: 0,
   minute: '00',
@@ -45,6 +82,7 @@ let timerState = {
   seconds: 0
 };
 
+console.clear()
 let notificationData = null;
 
 let timerInterval = null;
@@ -76,7 +114,6 @@ async function connectToOBS() {
       try {
         const micStatus = await obs.call('GetInputMute', { inputName: 'Mikrofon' });
         micMuted = micStatus.muted;
-        log.info(`Stan mikrofonu: ${micMuted ? 'wyciszony' : 'aktywny'}`);
       } catch (error) {
         log.error(`Błąd sprawdzania stanu mikrofonu: ${error.message}`);
       }
@@ -137,6 +174,49 @@ function resetServerTimer() {
   scorebugData.second = '00';
   log.timer('Timer zresetowany');
 }
+
+// Funkcje do zarządzania procesami
+function killProcesses(callback) {
+    exec('taskkill /IM obs64.exe /F && taskkill /IM node.exe /F', (error) => {
+        if (error) {
+            log.error(`Błąd zamykania procesów: ${error.message}`);
+        } else {
+            log.system('Zamknięto OBS i Node.js');
+        }
+        callback();
+    });
+}
+
+function startSystem() {
+    const scriptPath = path.join(__dirname, 'start_system.bat');
+    exec(`start "" "${scriptPath}"`, (error) => {
+        if (error) {
+            log.error(`Błąd uruchamiania systemu: ${error.message}`);
+        } else {
+            log.system('Uruchomiono system ponownie');
+        }
+    });
+}
+
+// Endpoint do restartu systemu
+app.post('/api/restart', (req, res) => {
+    log.system('Rozpoczęto restart systemu...');
+    killProcesses(() => {
+        startSystem();
+        res.json({ status: 'success', message: 'System restartowany' });
+    });
+});
+
+// Endpoint do wyłączenia systemu
+app.post('/api/shutdown', (req, res) => {
+    log.system('Rozpoczęto wyłączanie systemu...');
+    killProcesses(() => {
+        res.json({ status: 'success', message: 'System wyłączony' });
+        // Zamknij serwer Node.js
+        setTimeout(() => process.exit(0), 1000);
+    });
+});
+
 
 function pad(number) {
   return number.toString().padStart(2, '0');

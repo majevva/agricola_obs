@@ -83,6 +83,7 @@
   z-index: 2;
 }
 
+/* POPRAWIONA SEKCJA LOWER THIRD */
 .lower-third {
   position: relative;
   display: flex;
@@ -91,6 +92,7 @@
   font-weight: 500;
   letter-spacing: 0.6px;
   width: 280px;
+  min-height: 62px; /* Dodane aby zapewnić miejsce na oba rzędy */
 }
 
 .lower-third.hide {
@@ -100,10 +102,13 @@
 .header-row {
   position: relative;
   height: 34px;
+  display: flex; /* Zmienione z relative na flex */
+  width: 100%;
+  overflow: hidden;
 }
 
 .team-header {
-  position: absolute;
+  position: relative; /* Zmienione z absolute na relative */
   width: 100px;
   height: 34px;
   display: flex;
@@ -113,20 +118,26 @@
   transform: translateX(-100%);
   animation: slideInTeamHeader 0.5s ease-out forwards;
   z-index: 2;
+  flex-shrink: 0; /* Zapobiega kurczeniu się */
 }
 
 .team-header .color {
+  position: absolute;
   left: 0;
+  width: 6px;
+  height: 100%;
+  top: 0;
 }
 
 .team-header .name {
   padding: 0;
   margin-left: 6px;
   font-size: 1.3em;
+  white-space: nowrap;
 }
 
 .change-header {
-  position: absolute;
+  position: relative; /* Zmienione z absolute na relative */
   width: 180px;
   height: 34px;
   display: flex;
@@ -134,19 +145,17 @@
   justify-content: center;
   font-size: 1.1em;
   font-weight: 700;
-  left: 100px;
-  top: 0;
   transform: scaleX(0);
   transform-origin: left;
   animation: expandChangeHeader 0.4s ease-out 0.5s forwards;
   z-index: 1;
+  flex-shrink: 0; /* Zapobiega kurczeniu się */
 }
 
 .player-list {
-  position: absolute;
+  position: relative; /* Zmienione z absolute na relative */
   width: 180px;
-  left: 100px;
-  top: 34px;
+  margin-left: 100px; /* Przesunięcie zamiast left: 100px */
   padding: 0;
   height: 0;
   overflow: hidden;
@@ -165,8 +174,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-left: 0;
+  padding: 4px 8px; /* Dodane padding dla lepszego wyglądu */
   margin-left: -5px;
+  height: 28px; /* Stała wysokość dla każdego gracza */
+  box-sizing: border-box;
 }
 
 .player .number {
@@ -176,6 +187,9 @@
 
 .player .name {
   flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .player .arrow {
@@ -183,6 +197,7 @@
   margin-left: 8px;
   display: inline-block;
   vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .player.out .arrow {
@@ -198,14 +213,15 @@
   display: inline-block;
   vertical-align: middle;
   margin-right: 8px;
+  flex-shrink: 0;
 }
 
 .player .yellow-card {
-  color: #ffd700; /* Żółty kolor dla emoji 🟨 */
+  color: #ffd700;
 }
 
 .player .red-card {
-  color: #ff0000; /* Czerwony kolor dla emoji 🟥 */
+  color: #ff0000;
 }
 
 .player .injury {
@@ -214,7 +230,7 @@
 }
 
 .player .goal {
-  color: #10b981; /* Zielony kolor dla emoji ⚽ */
+  color: #10b981;
 }
 
 .player .unknown {
@@ -222,6 +238,7 @@
   color: #fff;
 }
 
+/* ANIMACJE - bez zmian */
 @keyframes slideInFromLeft {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(0); }

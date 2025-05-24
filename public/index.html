@@ -3,56 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agricola - Panel OBS - Mecz</title>
+  <title>Agricola - Panel OBS - Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="scoreboard.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Dodaj te style do sekcji head */
-    .notification-type-btn.active {
-      transform: translateY(-4px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      position: relative;
+    .tab-button.active {
+      background-color: #6b7280;
+      color: #fff;
     }
-    
-    .notification-type-btn.active::after {
-      content: '✓';
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      width: 24px;
-      height: 24px;
-      background-color: #10b981;
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
+    .tab-button {
+      background: none;
+      border: none;
+      outline: none;
+      font-size: 1.1rem;
       font-weight: bold;
+      color: #a78bfa;
+      padding: 1rem 0.5rem;
+      transition: background 0.2s, color 0.2s;
     }
-    
-    /* Popraw układ podglądu powiadomienia */
-    #notification-preview {
-      margin-top: 1rem;
-      margin-bottom: 1rem;
+    .tab-button:not(.active):hover {
+      background-color: #312e81;
+      color: #fff;
     }
-    
-    /* Zmniejsz odstęp między krokami */
-    .workflow-step {
-      margin-bottom: 1rem;
-      padding: 1rem;
-      background-color: rgba(31, 41, 55, 0.5);
-      border-radius: 0.5rem;
+    .dashboard-section {
+      margin-bottom: 2rem;
+      background: var(--bg-secondary, #23272f);
+      border-radius: 1rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 2rem 1.5rem;
     }
-    
-    /* Popraw widoczność instrukcji */
-    #notification-instructions {
+    .dashboard-section h2 {
+      color: #a78bfa;
+      font-size: 1.3rem;
       font-weight: bold;
-      padding: 0.75rem;
-      background-color: rgba(107, 70, 193, 0.2);
-      border-left: 4px solid #8b5cf6;
+      margin-bottom: 1.2rem;
+      letter-spacing: 0.03em;
+    }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2rem;
+    }
+    @media (max-width: 1024px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -71,34 +68,27 @@
       </div>
     </div>
 
+    <!-- Zakładki -->
     <div class="flex mb-6 bg-gray-800 rounded-lg overflow-hidden">
-      <button class="tab-button active flex-1 py-3 px-4 text-center font-bold" onclick="switchTab('stream')">
-        <i class="fas fa-broadcast-tower mr-2"></i>Stream
+      <button class="tab-button active flex-1" onclick="switchTab('match')">
+        <i class="fas fa-futbol mr-2"></i>MECZ
       </button>
-      <button class="tab-button flex-1 py-3 px-4 text-center font-bold" onclick="switchTab('scorebug')">
-        <i class="fas fa-trophy mr-2"></i>Scorebug
-      </button>
-      <button class="tab-button flex-1 py-3 px-4 text-center font-bold" onclick="switchTab('notification')">
-        <i class="fas fa-bell mr-2"></i>Powiadomienie
+      <button class="tab-button flex-1" onclick="switchTab('settings')">
+        <i class="fas fa-cog mr-2"></i>USTAWIENIA
       </button>
     </div>
 
-    <div id="stream-tab" class="tab-content active">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Kontrola Czasu - Najbardziej widoczna -->
-        <div class="bg-gray-800 p-6 rounded-xl">
-          <h2 class="text-xl font-bold mb-4 text-purple-400">
-            <i class="fas fa-clock mr-2"></i>Kontrola Czasu
-          </h2>
+    <!-- MECZ -->
+    <div id="match-tab" class="tab-content active">
+      <div class="dashboard-grid" style="grid-template-columns: 1.2fr 1fr 1.2fr; gap: 2.5rem;">
+        <!-- CZAS -->
+        <div class="dashboard-section">
+          <h2><i class="fas fa-clock mr-2"></i>Czas meczu</h2>
           <div class="timer-container mb-6">
-            <!-- Przycisk edycji timera -->
             <button id="timer-edit" class="timer-edit-toggle">✏️</button>
-
-            <!-- Wyświetlacz timera -->
             <div id="timer-display" class="timer-display">00:00</div>
           </div>
           <div class="timer-controls">
-            <!-- Główne przyciski (większe) -->
             <div class="grid grid-cols-2 gap-4 mb-3">
               <button id="timer-toggle-btn" onclick="toggleTimer()" class="bg-blue-600 hover:bg-blue-700 text-white py-4 px-4 rounded-lg font-bold transition text-lg">
                 <i id="timer-toggle-icon" class="fas fa-play mr-2"></i>
@@ -108,8 +98,6 @@
                 <i class="fas fa-undo mr-2"></i>RESET
               </button>
             </div>
-            
-            <!-- Przyciski predefiniowanych czasów (mniejsze) -->
             <div class="grid grid-cols-2 gap-4">
               <button onclick="setTimerToZero()" class="bg-gray-600 hover:bg-gray-700 text-white py-3 px-3 rounded-lg font-bold transition">
                 00:00
@@ -120,14 +108,50 @@
             </div>
           </div>
         </div>
-
-        <!-- Wynik Meczu - jeden pod drugim -->
-        <div class="bg-gray-800 p-6 rounded-xl">
-          <h2 class="text-xl font-bold mb-4 text-purple-400">
-            <i class="fas fa-futbol mr-2"></i>Wynik Meczu
-          </h2>
-          
-          <!-- Gospodarze -->
+        <!-- SZYBKIE POWIADOMIENIA -->
+        <div class="dashboard-section" style="min-width:320px;">
+          <h2><i class="fas fa-bolt mr-2"></i>Szybkie powiadomienia</h2>
+          <div class="mb-4">
+            <input id="player-search" type="text" placeholder="Szukaj zawodnika..." class="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-lg focus:outline-none focus:ring-2 focus:ring-purple-500" autocomplete="off">
+            <div id="player-search-suggestions" class="bg-gray-800 rounded-lg mt-1 shadow-lg max-h-56 overflow-y-auto hidden"></div>
+          </div>
+          <!-- Ostatnie aktywności -->
+          <div id="recent-activities" class="mt-4">
+            <h4 class="text-sm text-gray-400 mb-2">Ostatnie aktywności:</h4>
+            <div id="recent-activities-list" class="flex flex-col gap-2"></div>
+          </div>
+          <!-- Modal do powtarzania/zmiany powiadomienia -->
+          <div id="repeat-activity-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+            <div class="bg-gray-900 rounded-xl p-6 w-full max-w-md shadow-2xl relative">
+              <button onclick="closeRepeatActivityModal()" class="absolute top-2 right-2 text-gray-400 hover:text-white text-xl">&times;</button>
+              <div id="repeat-activity-info" class="mb-4 text-center"></div>
+              <div class="flex flex-col gap-3">
+                <button id="repeat-activity-btn" class="bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-bold">Powtórz powiadomienie</button>
+                <button id="repeat-activity-new-btn" class="bg-gray-700 hover:bg-gray-800 text-white py-2 rounded-lg font-bold">Wyślij z nowym komunikatem</button>
+              </div>
+            </div>
+          </div>
+          <div id="quick-notification-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+            <div class="bg-gray-900 rounded-xl p-6 w-full max-w-md shadow-2xl relative">
+              <button onclick="closeQuickNotificationModal()" class="absolute top-2 right-2 text-gray-400 hover:text-white text-xl">&times;</button>
+              <div id="quick-player-info" class="mb-4 text-center"></div>
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                <button class="quick-notif-btn bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold" data-type="goal"><i class="fas fa-futbol mr-1"></i>Gol</button>
+                <button class="quick-notif-btn bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg font-bold" data-type="yellow-card"><i class="fas fa-square mr-1"></i>Żółta</button>
+                <button class="quick-notif-btn bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-bold" data-type="red-card"><i class="fas fa-square mr-1"></i>Czerwona</button>
+                <button class="quick-notif-btn bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg font-bold" data-type="injury"><i class="fas fa-medkit mr-1"></i>Kontuzja</button>
+              </div>
+              <div id="quick-change-select" class="mb-4 hidden">
+                <label class="block mb-2 text-center">Wybierz zawodnika wchodzącego:</label>
+                <select id="quick-change-player-in" class="w-full px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-lg"></select>
+              </div>
+              <button id="quick-send-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-bold text-lg mt-2">Wyślij na ekran</button>
+            </div>
+          </div>
+        </div>
+        <!-- GOLE -->
+        <div class="dashboard-section">
+          <h2><i class="fas fa-trophy mr-2"></i>Wynik meczu</h2>
           <div class="team-control bg-gray-700 p-4 rounded-lg mb-4">
             <h3 class="font-bold text-center mb-2 text-lg">GOSPODARZE</h3>
             <div class="score-display flex items-center justify-center mb-3">
@@ -143,8 +167,6 @@
               </button>
             </div>
           </div>
-          
-          <!-- Goście -->
           <div class="team-control bg-gray-700 p-4 rounded-lg">
             <h3 class="font-bold text-center mb-2 text-lg">GOŚCIE</h3>
             <div class="score-display flex items-center justify-center mb-3">
@@ -161,262 +183,25 @@
             </div>
           </div>
         </div>
-
-        <!-- Kontrola Mikrofonu - kompaktowa wersja -->
-        <div class="bg-gray-800 p-4 rounded-xl">
-          <button id="mic-toggle" onclick="toggleMic()" class="w-full bg-red-600 hover:bg-red-700 text-white py-4 px-4 rounded-lg font-bold transition flex items-center justify-center text-lg">
-            <i id="mic-icon" class="fas fa-microphone-slash mr-2 text-xl"></i>
-            <span id="mic-text">MIKROFON WYCISZONY</span>
-          </button>
-        </div>
-
-        <!-- Zarządzanie Scenami -->
-        <div class="bg-gray-800 p-6 rounded-xl">
-          <h2 class="text-xl font-bold mb-4 text-purple-400">
-            <i class="fas fa-photo-video mr-2"></i>Zarządzanie Scenami
-          </h2>
-          <div class="grid grid-cols-2 gap-2 mb-6">
-            <button onclick="switchScene('Intro')" class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-bold transition">
-              <i class="fas fa-play-circle mr-2"></i>INTRO
-            </button>
-            <button onclick="switchScene('Koniec')" class="bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-bold transition">
-              <i class="fas fa-flag-checkered mr-2"></i>KONIEC
-            </button>
-            <button onclick="switchScene('Mecz')" class="bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-bold transition">
-              <i class="fas fa-futbol mr-2"></i>MECZ
-            </button>
-            <button onclick="switchScene('Przerwa')" class="bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-4 rounded-lg font-bold transition">
-              <i class="fas fa-coffee mr-2"></i>PRZERWA
-            </button>
-          </div>
-        </div>
-
-        <!-- Kontrola Streamu - Na dole -->
-        <div class="bg-gray-800 p-6 rounded-xl md:col-span-2">
-          <h2 class="text-xl font-bold mb-4 text-purple-400">
-            <i class="fas fa-broadcast-tower mr-2"></i>Kontrola Streamu
-          </h2>
-          <div class="grid grid-cols-2 gap-4">
-            <button onclick="startStream()" class="btn-stream-start bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-bold text-lg transition">
-              <i class="fas fa-play mr-2"></i>START
-            </button>
-            <button onclick="stopStream()" class="btn-stream-stop bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-bold text-lg transition">
-              <i class="fas fa-stop mr-2"></i>STOP
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="scorebug-tab" class="tab-content">
-      <div class="grid grid-cols-1 gap-6">
-        <!-- Podgląd Scorebuga - na górze, aby było widoczne -->
-        <div class="bg-gray-800 p-6 rounded-xl">
-          <h2 class="text-xl font-bold mb-4 text-purple-400">
-            <i class="fas fa-eye mr-2"></i>Podgląd Scorebuga
-          </h2>
-          <div class="flex justify-center">
-            <div class="pl-scoreboard">
-              <div class="team home">
-                <div class="color"></div>
-                <div class="name">
-                  <span id="preview-home-name">GOSPODARZE</span>
-                </div>
-              </div>
-              <div class="goals">
-                <div class="goal home">
-                  <span id="preview-home-score">0</span>
-                </div>
-                <div class="divider">
-                  <span>-</span>
-                </div>
-                <div class="goal away">
-                  <span id="preview-away-score">0</span>
-                </div>
-              </div>
-              <div class="time">
-                <span class="time-display" id="time-display-container">
-                  <span class="minute" id="preview-minute">00</span>
-                  <span class="time-divider">:</span>
-                  <span class="second" id="preview-second">00</span>
-                </span>
-              </div>
-              <div class="team away">
-                <div class="color"></div>
-                <div class="name">
-                  <span id="preview-away-name">GOŚCIE</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Ustawienia Scorebuga - podzielone na logiczne sekcje -->
-        <div class="bg-gray-800 p-6 rounded-xl">
-          <h2 class="text-xl font-bold mb-4 text-purple-400">
-            <i class="fas fa-cog mr-2"></i>Ustawienia Scorebuga
-          </h2>
-          
-          <!-- Sekcja 1: Drużyny i wynik -->
-          <div class="mb-6">
-            <h3 class="text-lg font-bold mb-3 border-b border-gray-700 pb-2">Drużyny i wynik</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Gospodarze -->
-              <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-bold mb-3 text-center">GOSPODARZE</h4>
-                <div class="space-y-3">
-                  <div>
-                    <label class="block mb-1 font-medium">Nazwa:</label>
-                    <input type="text" id="home-team-name" class="w-full bg-gray-600 border border-gray-600 rounded-lg px-3 py-2">
-                  </div>
-                  <div>
-                    <label class="block mb-1 font-medium">Kolor:</label>
-                    <div class="flex items-center">
-                      <input type="color" id="home-team-color" class="w-10 h-10 cursor-pointer">
-                      <span class="ml-2">HEX: <span id="home-hex"></span></span>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="block mb-1 font-medium">Gole:</label>
-                    <input type="number" id="home-score-bug" min="0" class="w-full bg-gray-600 border border-gray-600 rounded-lg px-3 py-2">
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Goście -->
-              <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-bold mb-3 text-center">GOŚCIE</h4>
-                <div class="space-y-3">
-                  <div>
-                    <label class="block mb-1 font-medium">Nazwa:</label>
-                    <input type="text" id="away-team-name" class="w-full bg-gray-600 border border-gray-600 rounded-lg px-3 py-2">
-                  </div>
-                  <div>
-                    <label class="block mb-1 font-medium">Kolor:</label>
-                    <div class="flex items-center">
-                      <input type="color" id="away-team-color" class="w-10 h-10 cursor-pointer">
-                      <span class="ml-2">HEX: <span id="away-hex"></span></span>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="block mb-1 font-medium">Gole:</label>
-                    <input type="number" id="away-score-bug" min="0" class="w-full bg-gray-600 border border-gray-600 rounded-lg px-3 py-2">
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Sekcja 2: Czas -->
-          <div class="mb-6">
-            <h3 class="text-lg font-bold mb-3 border-b border-gray-700 pb-2">Czas meczu</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block mb-1 font-medium">Minuta:</label>
-                <input type="number" id="match-minute" min="0" max="120" class="w-full bg-gray-600 border border-gray-600 rounded-lg px-3 py-2">
-              </div>
-              <div>
-                <label class="block mb-1 font-medium">Sekunda:</label>
-                <input type="number" id="match-second" min="0" max="59" class="w-full bg-gray-600 border border-gray-600 rounded-lg px-3 py-2">
-              </div>
-            </div>
-          </div>
-          
-          <!-- Sekcja 3: Kolory tła -->
-          <div class="mb-6">
-            <h3 class="text-lg font-bold mb-3 border-b border-gray-700 pb-2">Kolory tła</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block mb-1 font-medium">Tło drużyn:</label>
-                <div class="flex items-center">
-                  <input type="color" id="team-background" class="w-10 h-10 cursor-pointer">
-                  <span class="ml-2">HEX: <span id="team-background-hex"></span></span>
-                </div>
-              </div>
-              <div>
-                <label class="block mb-1 font-medium">Tło wyniku:</label>
-                <div class="flex items-center">
-                  <input type="color" id="goals-background" class="w-10 h-10 cursor-pointer">
-                  <span class="ml-2">HEX: <span id="goals-background-hex"></span></span>
-                </div>
-              </div>
-              <div>
-                <label class="block mb-1 font-medium">Tło czasu:</label>
-                <div class="flex items-center">
-                  <input type="color" id="time-background" class="w-10 h-10 cursor-pointer">
-                  <span class="ml-2">HEX: <span id="time-background-hex"></span></span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Sekcja 4: Kolory tekstu -->
-          <div class="mb-6">
-            <h3 class="text-lg font-bold mb-3 border-b border-gray-700 pb-2">Kolory tekstu</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block mb-1 font-medium">Tekst drużyn:</label>
-                <div class="flex items-center">
-                  <input type="color" id="team-text-color" class="w-10 h-10 cursor-pointer">
-                  <span class="ml-2">HEX: <span id="team-text-color-hex"></span></span>
-                </div>
-              </div>
-              <div>
-                <label class="block mb-1 font-medium">Tekst wyniku:</label>
-                <div class="flex items-center">
-                  <input type="color" id="goals-text-color" class="w-10 h-10 cursor-pointer">
-                  <span class="ml-2">HEX: <span id="goals-text-color-hex"></span></span>
-                </div>
-              </div>
-              <div>
-                <label class="block mb-1 font-medium">Tekst czasu:</label>
-                <div class="flex items-center">
-                  <input type="color" id="time-text-color" class="w-10 h-10 cursor-pointer">
-                  <span class="ml-2">HEX: <span id="time-text-color-hex"></span></span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Przycisk aktualizacji -->
-          <button id="update-scorebug" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 px-4 rounded-lg font-bold transition text-lg">
-            <i class="fas fa-sync-alt mr-2"></i>Aktualizuj Scorebug
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div id="notification-tab" class="tab-content">
-      <div class="bg-gray-800 p-6 rounded-xl">
-        <h2 class="text-xl font-bold mb-4 text-purple-400">
-          <i class="fas fa-bell mr-2"></i>Zarządzanie Powiadomieniami
-        </h2>
-        
-        <!-- Nowy, bardziej intuicyjny interfejs powiadomień -->
-        <div class="notification-workflow">
-          <!-- Krok 1: Wybór typu powiadomienia -->
+        <!-- POWIADOMIENIA -->
+        <div class="dashboard-section">
+          <h2><i class="fas fa-bell mr-2"></i>Powiadomienia</h2>
           <div class="workflow-step">
-            <h3 class="text-lg font-bold mb-2">Krok 1: Wybierz typ powiadomienia</h3>
-            <div class="notification-types grid grid-cols-1 md:grid-cols-5 gap-2">
+            <div class="notification-types grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
               <button id="notification-type-change" class="notification-type-btn bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg font-bold transition flex flex-col items-center" data-type="change">
                 <i class="fas fa-exchange-alt text-xl mb-1"></i>
-                <span>Zmiana</span>
               </button>
               <button id="notification-type-yellow-card" class="notification-type-btn bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-lg font-bold transition flex flex-col items-center" data-type="yellow-card">
                 <i class="fas fa-square text-xl mb-1" style="color: #facc15;"></i>
-                <span>Żółta Kartka</span>
               </button>
               <button id="notification-type-red-card" class="notification-type-btn bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg font-bold transition flex flex-col items-center" data-type="red-card">
                 <i class="fas fa-square text-xl mb-1" style="color: #ef4444;"></i>
-                <span>Czerwona Kartka</span>
               </button>
               <button id="notification-type-injury" class="notification-type-btn bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded-lg font-bold transition flex flex-col items-center" data-type="injury">
                 <i class="fas fa-medkit text-xl mb-1"></i>
-                <span>Kontuzja</span>
               </button>
               <button id="notification-type-goal" class="notification-type-btn bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg font-bold transition flex flex-col items-center" data-type="goal">
                 <i class="fas fa-futbol text-xl mb-1"></i>
-                <span>Gol</span>
               </button>
             </div>
             <div class="mt-2 p-2 rounded-lg bg-gray-700">
@@ -425,55 +210,19 @@
               </p>
             </div>
           </div>
-          
-          <!-- Krok 2: Wybór zawodników -->
-          <div class="workflow-step mb-6">
-            <h3 class="text-lg font-bold mb-3">Krok 2: Wybierz zawodnika(ów)</h3>
-            <div class="notification-info bg-gray-700 p-3 rounded-lg mb-4">
-              <p id="notification-instructions" class="text-center">
-                Wybierz typ powiadomienia, aby zobaczyć instrukcje.
-              </p>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="workflow-step mb-4">
+            <div class="grid grid-cols-2 gap-4">
               <div>
-                <div class="flex items-center justify-between mb-2">
-                  <h4 class="font-bold">Gospodarze</h4>
-                  <div class="team-selector">
-                    <button id="select-all-home" class="bg-purple-600 hover:bg-purple-700 text-white py-1 px-2 rounded text-xs">
-                      Zaznacz wszystkich
-                    </button>
-                    <button id="clear-home" class="bg-gray-600 hover:bg-gray-700 text-white py-1 px-2 rounded text-xs ml-1">
-                      Wyczyść
-                    </button>
-                  </div>
-                </div>
-                <div id="home-players-list" class="space-y-2 max-h-64 overflow-y-auto bg-gray-800 p-2 rounded-lg">
-                  <!-- Lista zawodników będzie generowana dynamicznie -->
-                </div>
+                <h4 class="font-bold mb-2">Gospodarze</h4>
+                <div id="home-players-list" class="space-y-2 max-h-64 overflow-y-auto bg-gray-800 p-2 rounded-lg"></div>
               </div>
               <div>
-                <div class="flex items-center justify-between mb-2">
-                  <h4 class="font-bold">Goście</h4>
-                  <div class="team-selector">
-                    <button id="select-all-away" class="bg-purple-600 hover:bg-purple-700 text-white py-1 px-2 rounded text-xs">
-                      Zaznacz wszystkich
-                    </button>
-                    <button id="clear-away" class="bg-gray-600 hover:bg-gray-700 text-white py-1 px-2 rounded text-xs ml-1">
-                      Wyczyść
-                    </button>
-                  </div>
-                </div>
-                <div id="away-players-list" class="space-y-2 max-h-64 overflow-y-auto bg-gray-800 p-2 rounded-lg">
-                  <!-- Lista zawodników będzie generowana dynamicznie -->
-                </div>
+                <h4 class="font-bold mb-2">Goście</h4>
+                <div id="away-players-list" class="space-y-2 max-h-64 overflow-y-auto bg-gray-800 p-2 rounded-lg"></div>
               </div>
             </div>
           </div>
-          
-          <!-- Krok 3: Podgląd i wysyłanie -->
           <div class="workflow-step">
-            <h3 class="text-lg font-bold mb-3">Krok 3: Sprawdź podgląd i wyślij</h3>
             <div id="notification-preview-message" class="text-center text-gray-400 bg-gray-700 p-4 rounded-lg mb-4">
               Wybierz typ powiadomienia i zawodników, aby zobaczyć podgląd.
             </div>
@@ -504,7 +253,6 @@
                 </div>
               </div>
             </div>
-            
             <button id="send-notification-btn" onclick="sendNotification()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 px-4 rounded-lg font-bold transition text-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed">
               <i class="fas fa-paper-plane mr-2"></i>Wyślij na Ekran
             </button>
@@ -513,128 +261,130 @@
       </div>
     </div>
 
+    <!-- USTAWIENIA -->
+    <div id="settings-tab" class="tab-content">
+      <div class="dashboard-section">
+        <h2><i class="fas fa-cog mr-2"></i>Ustawienia Scorebuga i Streamu</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <h3 class="text-lg font-bold mb-3 border-b border-gray-700 pb-2">Drużyny i wynik</h3>
+            <div class="space-y-3">
+              <div>
+                <label class="block mb-1 font-medium">Nazwa gospodarzy:</label>
+                <input type="text" id="home-team-name" class="w-full bg-gray-600 border border-gray-600 rounded-lg px-3 py-2">
+              </div>
+              <div>
+                <label class="block mb-1 font-medium">Nazwa gości:</label>
+                <input type="text" id="away-team-name" class="w-full bg-gray-600 border border-gray-600 rounded-lg px-3 py-2">
+              </div>
+              <div>
+                <label class="block mb-1 font-medium">Gole gospodarzy:</label>
+                <input type="number" id="home-score-bug" min="0" class="w-full bg-gray-600 border border-gray-600 rounded-lg px-3 py-2">
+              </div>
+              <div>
+                <label class="block mb-1 font-medium">Gole gości:</label>
+                <input type="number" id="away-score-bug" min="0" class="w-full bg-gray-600 border border-gray-600 rounded-lg px-3 py-2">
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold mb-3 border-b border-gray-700 pb-2">Kolory i tła</h3>
+            <div class="flex flex-col gap-4">
+              <div class="flex items-center gap-4">
+                <label class="w-40 font-medium">Kolor gospodarzy:</label>
+                <input type="color" id="home-team-color" class="w-10 h-10 cursor-pointer border-2 border-gray-500 rounded-lg">
+                <span class="ml-2">HEX: <span id="home-hex"></span></span>
+              </div>
+              <div class="flex items-center gap-4">
+                <label class="w-40 font-medium">Kolor gości:</label>
+                <input type="color" id="away-team-color" class="w-10 h-10 cursor-pointer border-2 border-gray-500 rounded-lg">
+                <span class="ml-2">HEX: <span id="away-hex"></span></span>
+              </div>
+              <div class="flex items-center gap-4">
+                <label class="w-40 font-medium">Tło drużyn:</label>
+                <input type="color" id="team-background" class="w-10 h-10 cursor-pointer border-2 border-gray-500 rounded-lg">
+                <span class="ml-2">HEX: <span id="team-background-hex"></span></span>
+              </div>
+              <div class="flex items-center gap-4">
+                <label class="w-40 font-medium">Tło wyniku:</label>
+                <input type="color" id="goals-background" class="w-10 h-10 cursor-pointer border-2 border-gray-500 rounded-lg">
+                <span class="ml-2">HEX: <span id="goals-background-hex"></span></span>
+              </div>
+              <div class="flex items-center gap-4">
+                <label class="w-40 font-medium">Tło czasu:</label>
+                <input type="color" id="time-background" class="w-10 h-10 cursor-pointer border-2 border-gray-500 rounded-lg">
+                <span class="ml-2">HEX: <span id="time-background-hex"></span></span>
+              </div>
+              <div class="flex items-center gap-4">
+                <label class="w-40 font-medium">Tekst drużyn:</label>
+                <input type="color" id="team-text-color" class="w-10 h-10 cursor-pointer border-2 border-gray-500 rounded-lg">
+                <span class="ml-2">HEX: <span id="team-text-color-hex"></span></span>
+              </div>
+              <div class="flex items-center gap-4">
+                <label class="w-40 font-medium">Tekst wyniku:</label>
+                <input type="color" id="goals-text-color" class="w-10 h-10 cursor-pointer border-2 border-gray-500 rounded-lg">
+                <span class="ml-2">HEX: <span id="goals-text-color-hex"></span></span>
+              </div>
+              <div class="flex items-center gap-4">
+                <label class="w-40 font-medium">Tekst czasu:</label>
+                <input type="color" id="time-text-color" class="w-10 h-10 cursor-pointer border-2 border-gray-500 rounded-lg">
+                <span class="ml-2">HEX: <span id="time-text-color-hex"></span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button id="update-scorebug" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 px-4 rounded-lg font-bold transition text-lg mt-6">
+          <i class="fas fa-sync-alt mr-2"></i>Aktualizuj Scorebug
+        </button>
+      </div>
+      <div class="dashboard-section">
+        <h2><i class="fas fa-broadcast-tower mr-2"></i>Stream</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <button onclick="startStream()" class="btn-stream-start bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-bold text-lg transition">
+            <i class="fas fa-play mr-2"></i>START
+          </button>
+          <button onclick="stopStream()" class="btn-stream-stop bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-bold text-lg transition">
+            <i class="fas fa-stop mr-2"></i>STOP
+          </button>
+        </div>
+      </div>
+      <div class="dashboard-section">
+        <h2><i class="fas fa-photo-video mr-2"></i>Zarządzanie Scenami</h2>
+        <div class="grid grid-cols-2 gap-2 mb-6">
+          <button onclick="switchScene('Intro')" class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-bold transition">
+            <i class="fas fa-play-circle mr-2"></i>INTRO
+          </button>
+          <button onclick="switchScene('Koniec')" class="bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-bold transition">
+            <i class="fas fa-flag-checkered mr-2"></i>KONIEC
+          </button>
+          <button onclick="switchScene('Mecz')" class="bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-bold transition">
+            <i class="fas fa-futbol mr-2"></i>MECZ
+          </button>
+          <button onclick="switchScene('Przerwa')" class="bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-4 rounded-lg font-bold transition">
+            <i class="fas fa-coffee mr-2"></i>PRZERWA
+          </button>
+        </div>
+      </div>
+      <div class="dashboard-section">
+        <h2><i class="fas fa-microphone mr-2"></i>Mikrofon</h2>
+        <button id="mic-toggle" onclick="toggleMic()" class="w-full bg-red-600 hover:bg-red-700 text-white py-4 px-4 rounded-lg font-bold transition flex items-center justify-center text-lg">
+          <i id="mic-icon" class="fas fa-microphone-slash mr-2 text-xl"></i>
+          <span id="mic-text">MIKROFON WYCISZONY</span>
+        </button>
+      </div>
+    </div>
+  </div>
   <script src="https://cdn.jsdelivr.net/npm/obs-websocket-js@4.0.0/dist/obs-websocket.js"></script>
   <script src="script.js"></script>
   <script>
-    function setupTimerEdit() {
-      const timerDisplay = document.getElementById('timer-display');
-      const timerEditToggle = document.getElementById('timer-edit');
-      
-      if (!timerDisplay || !timerEditToggle) return;
-      
-      // Usuń istniejące event listenery, aby zapobiec dublowaniu
-      const newTimerEditToggle = timerEditToggle.cloneNode(true);
-      timerEditToggle.parentNode.replaceChild(newTimerEditToggle, timerEditToggle);
-      
-      newTimerEditToggle.addEventListener('click', function() {
-        // Sprawdź, czy już istnieje pole edycji i usuń je
-        const existingInput = document.querySelector('.timer-edit-input');
-        if (existingInput) {
-          existingInput.parentNode.remove();
-          timerDisplay.style.display = '';
-          return;
-        }
-        
-        // Pobierz aktualny czas
-        const currentTime = timerDisplay.textContent.trim();
-        
-        // Utwórz pole edycji zachowując styl timera
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = currentTime;
-        input.className = 'timer-display timer-edit-input'; // Dodaj klasę dla łatwiejszej identyfikacji
-        input.style.width = '100%';
-        input.style.textAlign = 'center';
-        input.style.border = '2px solid #6b46c1';
-        input.style.outline = 'none';
-        input.style.background = 'transparent';
-        
-        // Zastąp wyświetlacz polem edycji
-        timerDisplay.style.display = 'none';
-        timerDisplay.parentNode.insertBefore(input, timerDisplay);
-        
-        // Ustaw fokus i zaznacz tekst
-        input.focus();
-        input.select();
-        
-        // Flaga do śledzenia, czy input został już usunięty
-        let inputRemoved = false;
-        
-        // Funkcja do usuwania inputa i przywracania wyświetlacza
-        function cleanupInput() {
-          if (!inputRemoved) {
-            inputRemoved = true;
-            input.remove();
-            timerDisplay.style.display = '';
-          }
-        }
-        
-        // Obsługa zatwierdzenia (Enter) lub anulowania (Escape)
-        input.addEventListener('keydown', async function(event) {
-          if (event.key === 'Enter') {
-            const newTime = input.value.trim();
-            
-            // Sprawdź, czy format czasu jest poprawny (MM:SS)
-            if (/^\d{1,2}:\d{2}$/.test(newTime)) {
-              // Aktualizuj wyświetlacz timera
-              timerDisplay.textContent = newTime;
-              
-              // Wyślij nowy czas do serwera
-              try {
-                const parts = newTime.split(':');
-                const minutes = parseInt(parts[0], 10);
-                const seconds = parseInt(parts[1], 10);
-                
-                await fetch('/update-time', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ 
-                    action: 'set',
-                    minute: pad(minutes),
-                    second: pad(seconds)
-                  })
-                });
-              } catch (error) {
-                console.error('Błąd aktualizacji timera:', error);
-              }
-              
-              // Usuń pole edycji
-              cleanupInput();
-            } else {
-              // Wyświetl komunikat o błędzie
-              alert('Wprowadź czas w formacie MM:SS (np. 05:30)');
-              input.focus();
-              input.select();
-            }
-          } else if (event.key === 'Escape') {
-            // Anuluj edycję
-            cleanupInput();
-          }
-        });
-        
-        // Obsługa utraty fokusu
-        input.addEventListener('blur', function() {
-          // Używamy setTimeout, aby dać zdarzeniu keydown szansę na wykonanie się pierwsze
-          setTimeout(cleanupInput, 100);
-        });
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.toggle('active', tab.id === `${tabName}-tab`);
+      });
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.toggle('active', button.textContent.toLowerCase().includes(tabName));
       });
     }
   </script>
-  <!-- Dodaj te skrypty na końcu pliku, przed zamykającym tagiem </body> -->
-  <script>
-    // Dodaj obsługę kliknięć na przyciski typów powiadomień
-    document.addEventListener('DOMContentLoaded', function() {
-      const notificationButtons = document.querySelectorAll('.notification-type-btn');
-      
-      notificationButtons.forEach(button => {
-        button.addEventListener('click', function() {
-          const type = this.getAttribute('data-type');
-          updateNotificationPreview(type);
-        });
-      });
-      
-      // Domyślnie wybierz typ "change"
-      updateNotificationPreview('change');
-    });
-  </script>
+</body>
 </html>

@@ -1,12 +1,12 @@
 {
-  "port": 3000,
-  "teams": {
-    "home": "home_players.json",
-    "away": "away_players.json"
-  },
-  "obs": {
-    "host": "192.168.1.156",
-    "port": 4455,
-    "password": ""
-  }
+    "port": 3000,
+    "teams": {
+        "home": "home_players.json",
+        "away": "away_players.json"
+    },
+    "obs": {
+        "host": "192.168.1.33",
+        "port": 4445,
+        "password": ""
+    }
 }

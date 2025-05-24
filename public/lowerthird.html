@@ -1,168 +1,284 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <title>Lower Third</title>
-  <link rel="stylesheet" href="scoreboard.css">
+  <meta charset="UTF-8" />
+  <title>Lower Third FX</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@300;400;700&display=swap');
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      font-family: 'Roboto', sans-serif;
+      overflow: hidden;
+    }
+
+    .lower-third-container {
+      position: fixed;
+      bottom: 60px;
+      left: 50px;
+      width: 460px;
+      height: 140px;
+    }
+
+    .lower-third {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: #111;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      transform: translateX(-600px);
+      opacity: 0;
+      transition: all 0.6s ease-in-out;
+    }
+
+    .lower-third.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .upper-part {
+      z-index: 1;
+      display: flex;
+      padding: 15px 20px 0;
+      align-items: center;
+    }
+
+    .team-logo {
+      width: 55px;
+      height: 55px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-right: 15px;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+
+    .team-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .player-info {
+      flex: 1;
+    }
+
+    .player-lastname {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      text-transform: uppercase;
+      color: white;
+      margin: 0;
+      line-height: 1;
+    }
+
+    .player-firstname {
+      font-size: 16px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.75);
+      margin: 4px 0 0;
+      text-transform: uppercase;
+    }
+
+    .notification-tag {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      background-color: #333;
+      color: white;
+    }
+
+    .bar {
+      z-index: 1;
+      height: 8px;
+      width: 100%;
+      background: #333;
+    }
+
+    .bar.goal { background: linear-gradient(to right, #00c853, #b2ff59); }
+    .bar.change { background: linear-gradient(to right, #29b6f6, #00e5ff); }
+    .bar.injury { background: linear-gradient(to right, #ff6f91, #ff9a9e); }
+    .bar.red-card { background: linear-gradient(to right, #ff1744, #d50000); }
+    .bar.yellow-card { background: linear-gradient(to right, #ffeb3b, #fbc02d); }
+
+    /* BACKGROUND FX CLASSES */
+    .background-goal {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/1041/1041916.png');
+      background-size: 40px;
+      background-repeat: repeat;
+      animation: moveBg 3s linear infinite;
+      opacity: 0.1;
+    }
+
+    .background-injury {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/2913/2913990.png');
+      background-size: 30px;
+      background-repeat: repeat;
+      animation: moveBg 2s linear infinite;
+      opacity: 0.1;
+    }
+
+    .background-red-card {
+      background-color: rgba(255, 0, 0, 0.2);
+      animation: pulseRed 1s ease-in-out infinite;
+    }
+
+    .background-yellow-card {
+      background-color: rgba(255, 255, 0, 0.15);
+      animation: pulseYellow 1.5s ease-in-out infinite;
+    }
+
+    .background-change {
+      background: linear-gradient(135deg, rgba(0,255,255,0.05), rgba(0,128,255,0.1));
+      animation: flowGradient 3s ease-in-out infinite;
+    }
+
+    @keyframes moveBg {
+      from { background-position: 0 0; }
+      to { background-position: 100% 100%; }
+    }
+
+    @keyframes pulseRed {
+      0%, 100% { opacity: 0.1; }
+      50% { opacity: 0.25; }
+    }
+
+    @keyframes pulseYellow {
+      0%, 100% { opacity: 0.1; }
+      50% { opacity: 0.3; }
+    }
+
+    @keyframes flowGradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+  </style>
 </head>
 <body>
-  <div id="lower-third-container"></div>
+  <div class="lower-third-container">
+    <div class="lower-third" id="lowerThird">
+      <div class="overlay" id="overlayFx"></div>
+      <div class="upper-part" id="upperPart">
+        <div class="team-logo"><img id="teamLogo" src="" alt="" /></div>
+        <div class="player-info" id="playerInfo">
+          <p class="player-lastname" id="playerLastname"></p>
+          <p class="player-firstname" id="playerFirstname"></p>
+        </div>
+        <!-- Dodajemy blok na zawodnika wchodzącego przy zmianie -->
+        <div class="player-info" id="playerInfoIn" style="display:none; margin-left:24px;">
+          <p class="player-lastname" id="playerLastnameIn" style="color:#29b6f6;"></p>
+          <p class="player-firstname" id="playerFirstnameIn" style="color:#b2ebf2;"></p>
+        </div>
+        <div class="notification-tag" id="notificationType">INFO</div>
+      </div>
+      <div class="bar" id="bottomBar"></div>
+    </div>
+  </div>
 
   <script>
     let isAnimating = false;
 
     function renderLowerThird(data) {
-      console.log('Rozpoczynanie renderLowerThird z danymi:', data);
-      if (isAnimating) {
-        console.log('Animacja w toku, pomijanie renderowania.');
-        return;
-      }
-
-      const container = document.getElementById('lower-third-container');
-      container.innerHTML = '';
-
-      if (!data || !data.playerOut || !data.timestamp) {
-        console.log('Brak wymaganych danych:', data);
-        isAnimating = false;
-        return;
-      }
+      if (isAnimating || !data || !data.playerOut || !data.timestamp) return;
 
       isAnimating = true;
-      console.log('Ustawiono isAnimating na true');
 
-      const lowerThird = document.createElement('div');
-      lowerThird.className = 'lower-third';
+      const lowerThird = document.getElementById('lowerThird');
+      const overlay = document.getElementById('overlayFx');
+      const teamLogo = document.getElementById('teamLogo');
+      const playerFirstname = document.getElementById('playerFirstname');
+      const playerLastname = document.getElementById('playerLastname');
+      const notificationType = document.getElementById('notificationType');
+      const bottomBar = document.getElementById('bottomBar');
+      // Nowe elementy dla zawodnika wchodzącego
+      const playerInfoIn = document.getElementById('playerInfoIn');
+      const playerFirstnameIn = document.getElementById('playerFirstnameIn');
+      const playerLastnameIn = document.getElementById('playerLastnameIn');
 
-      const headerRow = document.createElement('div');
-      headerRow.className = 'header-row';
+      const typeLabels = {
+        'goal': 'GOL',
+        'change': 'ZMIANA',
+        'injury': 'KONTUZJA',
+        'red-card': 'CZERWONA',
+        'yellow-card': 'ŻÓŁTA'
+      };
 
-      const teamHeader = document.createElement('div');
-      teamHeader.className = `team-header ${data.team}`;
-      teamHeader.innerHTML = `
-        <div class="color"></div>
-        <div class="name">
-          <span id="team-name"></span>
-        </div>
-      `;
-      headerRow.appendChild(teamHeader);
+      const bgClasses = [
+        'background-goal', 'background-injury',
+        'background-red-card', 'background-yellow-card',
+        'background-change'
+      ];
+      bgClasses.forEach(cls => overlay.classList.remove(cls));
 
-      const changeHeader = document.createElement('div');
-      changeHeader.className = 'change-header';
-      changeHeader.innerHTML = `<span id="change-label">${
-        data.type === 'change' ? 'Zmiana' :
-        data.type === 'yellow-card' ? 'Żółta Kartka' :
-        data.type === 'red-card' ? 'Czerwona Kartka' :
-        data.type === 'injury' ? 'Kontuzja' : 'Gol'
-      }</span>`;
-      headerRow.appendChild(changeHeader);
+      // Domyślnie ukryj blok zawodnika wchodzącego
+      playerInfoIn.style.display = 'none';
 
-      lowerThird.appendChild(headerRow);
-
-      const playerList = document.createElement('div');
-      playerList.className = 'player-list';
-      playerList.classList.add(data.type === 'change' && data.playerIn ? 'two-players' : 'one-player');
-
-      const playerOut = document.createElement('div');
-      playerOut.className = 'player out';
-      const outSurname = data.playerOut.lastname;
-
-      // Używamy emoji bezpośrednio zamiast prostokątów tła
-      let indicatorHtml = '';
-      switch (data.type) {
-        case 'change':
-          indicatorHtml = '<span class="arrow">➡️</span>';
-          break;
-        case 'yellow-card':
-          indicatorHtml = '<span class="indicator yellow-card">🟨</span>';
-          break;
-        case 'red-card':
-          indicatorHtml = '<span class="indicator red-card">🟥</span>';
-          break;
-        case 'injury':
-          indicatorHtml = '<span class="indicator injury">➕</span>';
-          break;
-        case 'goal':
-          indicatorHtml = '<span class="indicator goal">⚽</span>';
-          break;
-        default:
-          indicatorHtml = '<span class="indicator unknown">?</span>';
-      }
-
-      // Nowa struktura: [indicatorHtml][nazwisko] - bez numeru zawodnika
-      playerOut.innerHTML = `
-        ${indicatorHtml}
-        <span class="name">${outSurname}</span>
-      `;
-      playerList.appendChild(playerOut);
-
+      // Obsługa typu "change" - pokazujemy oba nazwiska
       if (data.type === 'change' && data.playerIn) {
-        const playerIn = document.createElement('div');
-        playerIn.className = 'player in';
-        const inSurname = data.playerIn.lastname;
-        // Nowa struktura dla playerIn: [arrow][nazwisko] - bez numeru zawodnika
-        playerIn.innerHTML = `
-          <span class="arrow">⬅️</span>
-          <span class="name">${inSurname}</span>
-        `;
-        playerList.appendChild(playerIn);
+        playerLastname.textContent = data.playerOut.lastname || '';
+        playerFirstname.textContent = data.playerOut.firstname || '';
+        playerLastnameIn.textContent = data.playerIn.lastname || '';
+        playerFirstnameIn.textContent = data.playerIn.firstname || '';
+        playerInfoIn.style.display = '';
+      } else {
+        // Pozostałe typy - tylko zawodnik "out"
+        playerLastname.textContent = data.playerOut.lastname || data.playerOut || '';
+        playerFirstname.textContent = data.playerOut.firstname || '';
+        playerLastnameIn.textContent = '';
+        playerFirstnameIn.textContent = '';
+        playerInfoIn.style.display = 'none';
       }
 
-      lowerThird.appendChild(playerList);
-      container.appendChild(lowerThird);
+      notificationType.textContent = typeLabels[data.type] || 'INFO';
 
-      fetch('/scorebug-data')
-        .then(response => response.json())
-        .then(scorebugData => {
-          console.log('Pobrano scorebug-data:', scorebugData);
-          document.getElementById('team-name').textContent = data.team === 'home' ? scorebugData.homeName : scorebugData.awayName;
-          document.querySelector('.team-header .color').style.backgroundColor = data.team === 'home' ? scorebugData.homeColor : scorebugData.awayColor;
-          document.querySelector('.team-header').style.backgroundColor = scorebugData.teamBackground;
-          document.querySelector('.team-header .name').style.color = scorebugData.teamTextColor;
-          document.querySelector('.change-header').style.backgroundColor = scorebugData.goalsBackground;
-          document.querySelector('.change-header').style.color = scorebugData.goalsTextColor;
-          document.querySelector('.player.out').style.backgroundColor = scorebugData.teamBackground;
-          document.querySelector('.player.out').style.color = scorebugData.teamTextColor;
-          if (data.type === 'change' && data.playerIn) {
-            document.querySelector('.player.in').style.backgroundColor = scorebugData.teamTextColor;
-            document.querySelector('.player.in').style.color = scorebugData.teamBackground;
-          }
-        })
-        .catch(error => console.error('Błąd pobierania scorebug-data:', error));
+      bottomBar.className = `bar ${data.type}`;
+      overlay.classList.add(`background-${data.type}`);
+
+      teamLogo.src = data.team === 'home' ? 'home_logo.png' : 'away_logo.png';
+
+      lowerThird.classList.add('show');
 
       setTimeout(() => {
-        console.log('Ukrywanie powiadomienia po 10 sekundach');
-        lowerThird.classList.add('hide');
+        lowerThird.classList.remove('show');
         setTimeout(() => {
-          console.log('Czyszczenie kontenera i reset isAnimating');
-          container.innerHTML = '';
           isAnimating = false;
         }, 500);
-      }, 10000);
+      }, 8000);
 
       localStorage.setItem('lastShownTimestamp', data.timestamp.toString());
-      console.log('Zapisano lastShownTimestamp:', data.timestamp.toString());
     }
 
+    // Logo fallback
+    document.getElementById('teamLogo').addEventListener('error', function () {
+      this.style.display = 'none';
+    });
+
+    // Polling for updates
     setInterval(() => {
-      console.log('Odpytywanie /notification-data');
       fetch('/notification-data')
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => {
-          console.log('Pobrano notification-data:', data);
-          if (!data || !data.playerOut || !data.timestamp) {
-            console.log('Brak powiadomienia do wyświetlenia:', data);
-            return;
-          }
-          const lastShownTimestamp = localStorage.getItem('lastShownTimestamp');
-          console.log('Porównanie timestamp:', { lastShownTimestamp, currentTimestamp: data.timestamp.toString() });
-          if (!lastShownTimestamp || lastShownTimestamp !== data.timestamp.toString()) {
-            console.log('Nowe powiadomienie, wywołanie renderLowerThird');
+          const last = localStorage.getItem('lastShownTimestamp');
+          if (data && data.timestamp && data.timestamp.toString() !== last) {
             renderLowerThird(data);
-          } else {
-            console.log('Powiadomienie już wyświetlone, pomijanie');
           }
         })
-        .catch(error => console.error('Błąd pobierania notification-data:', error));
+        .catch(err => console.error(err));
     }, 1000);
   </script>
 </body>
