@@ -1,67 +1,47 @@
 // --- ZMIENNE GLOBALNE ---
-const obs = new window.OBSWebSocket(); // Poprawka: Użycie window.OBSWebSocket
 let homeScore = 0;
 let awayScore = 0;
-let selectedPlayers = []; // Dla powiadomień z zakładki "Powiadomienia"
-let notificationType = 'change'; // Domyślny typ powiadomienia z zakładki "Powiadomienia"
-let notificationTeam = 'home'; // Domyślna drużyna dla powiadomienia
-let allPlayers = []; // Cache wszystkich zawodników
-let recentActivities = []; // Historia ostatnich akcji (np. z szybkich powiadomień)
+let selectedPlayers = []; 
+let notificationType = 'change'; 
+let notificationTeam = 'home'; 
+let allPlayers = []; 
+let recentActivities = []; 
 const MAX_RECENT_ACTIVITIES = 8;
 
-// Zmienne dla stanu timera i mikrofonu
 let isTimerRunning = false;
-let obsConnectionState = { connected: false, reconnecting: false, micMuted: true, streamActive: false };
+let obsFrontendState = { 
+    micMuted: true, 
+    streamActive: false,
+    obsConnected: false, 
+    selectedMicNameBackend: 'Mikrofon' 
+}; 
 
-// Zmienne dla plików logotypów (Intro Settings)
 let homeLogoFile = null;
 let awayLogoFile = null;
 
-// Elementy DOM (będą inicjalizowane w DOMContentLoaded)
-// Sidebar i Taby
+// Elementy DOM 
 let sidebarButtons, tabContents;
-
-// Top Bar
 let currentTimeEl, streamStatusIndicatorEl, streamStatusTextEl, streamControlBtn, streamControlIcon, streamControlText;
-
-// Match Tab
 let timerDisplayEl, timerEditBtn, timerToggleBtn, timerToggleIcon, timerToggleText, timerResetBtn, timerSetZeroBtn, timerSet45Btn;
 let playerSearchInput, playerSearchSuggestionsEl, recentActivitiesListEl;
-
-// Notifications Tab
 let notificationTypesContainer, notificationInstructionsEl, homePlayersListEl, awayPlayersListEl;
 let notificationPreviewEl, notificationPreviewMessageEl, sendNotificationBtn;
-let previewTeamNameEl, previewChangeLabelEl, previewPlayerOutEl, previewPlayerInEl; // Elementy wewnątrz podglądu powiadomienia
-
-// Score Tab
+let previewTeamNameEl, previewChangeLabelEl, previewPlayerOutEl, previewPlayerInEl; 
 let scoreHomeDisplay, scoreAwayDisplay, scoreHomeNameDisplay, scoreAwayNameDisplay;
-// Przyciski .update-score-btn będą obsługiwane przez querySelectorAll
-
-// Scenes Tab
-// Przyciski .switch-scene-btn będą obsługiwane przez querySelectorAll
-
-// Settings Tab - Scorebug
 let homeTeamNameScorebugInput, awayTeamNameScorebugInput, homeScoreBugInput, awayScoreBugInput;
 let homeTeamColorInput, awayTeamColorInput, teamBackgroundColorInput, goalsBackgroundColorInput, timeBackgroundColorInput;
 let teamTextColorInput, goalsTextColorInput, timeTextColorInput;
 let homeHexEl, awayHexEl, teamBackgroundHexEl, goalsBackgroundHexEl, timeBackgroundHexEl;
 let teamTextColorHexEl, goalsTextColorHexEl, timeTextColorHexEl;
 let updateScorebugBtn;
-
-// Settings Tab - Intro
 let introHomeTeamFullNameInput, introAwayTeamFullNameInput, introMatchDateInput, introMatchTimeInput, introMatchLocationInput;
 let introHomeLogoUploadInput, previewHomeLogoImg, introAwayLogoUploadInput, previewAwayLogoImg;
 let updateIntroSettingsBtn;
-
-// Settings Tab - OBS Stream & Player Management
 let micSelectEl, micToggleBtn, micIconEl, cameraSelectEl, bitrateSliderEl, bitrateValueEl;
 let clearPlayersCacheBtn;
-
-// Modals
 let quickNotificationModal, closeQuickNotificationModalBtn, quickPlayerInfoEl, quickNotifBtns, quickChangeSelectContainer, quickChangePlayerInSelect, quickSendBtn;
 let repeatActivityModal, closeRepeatActivityModalBtn, repeatActivityInfoEl, repeatActivityBtn, repeatActivityNewBtn;
 
-// Zmienne pomocnicze dla logiki modalów
 let currentQuickPlayer = null;
 let currentQuickNotificationType = null;
 let currentQuickPlayerIn = null;
@@ -78,6 +58,7 @@ function normalizeString(str) {
 }
 
 function pad(num, size = 2) {
+  if (num === null || typeof num === 'undefined') return '0'.repeat(size); // Zabezpieczenie
   return num.toString().padStart(size, '0');
 }
 
@@ -87,100 +68,82 @@ function formatTimestampToTime(timestamp) {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-// --- OBS WebSocket Connection ---
-async function connectToOBS() {
-    if (obsConnectionState.reconnecting || obs.socket) return; // obs.socket to sprawdzanie czy już jest połączenie
-
-    obsConnectionState.reconnecting = true;
-    const obsAddress = localStorage.getItem('obsAddress') || 'localhost'; // Domyślne wartości lub z localStorage
-    const obsPort = localStorage.getItem('obsPort') || '4455';
-    const obsPassword = localStorage.getItem('obsPassword') || ''; // Puste hasło jeśli nie ma
-
-    console.log(`Attempting to connect to OBS: ws://${obsAddress}:${obsPort}`);
-
+// --- OBS STATUS & CONTROL (via Backend) ---
+async function fetchOBSBackendState() {
     try {
-        await obs.connect(`ws://${obsAddress}:${obsPort}`, obsPassword);
-        console.log('Successfully connected to OBS WebSocket.');
-        obsConnectionState.connected = true;
-        obsConnectionState.reconnecting = false;
-        updateStreamStatusIndicator(true); // Zakładamy, że połączenie oznacza gotowość
-        fetchOBSState(); // Pobierz początkowy stan OBS
-
-        obs.on('ConnectionClosed', () => {
-            console.warn('OBS WebSocket connection closed.');
-            obsConnectionState.connected = false;
-            obsConnectionState.reconnecting = false; // Pozwól na ponowną próbę
-            updateStreamStatusIndicator(false);
-            setTimeout(connectToOBS, 5000); // Próba ponownego połączenia po 5s
-        });
-
-        obs.on('StreamStateChanged', (data) => {
-            obsConnectionState.streamActive = data.outputActive;
-            updateStreamControlButton();
-            console.log('Stream state changed:', data);
-        });
-        
-        obs.on('InputMuteStateChanged', (data) => {
-            if (data.inputName === (localStorage.getItem('selectedMicName') || 'Mikrofon')) { // Użyj wybranego mikrofonu
-                obsConnectionState.micMuted = data.inputMuted;
-                updateMicVisuals();
+        const response = await fetch('/obs-status'); 
+        if (!response.ok) {
+            if (response.status === 404) {
+                console.warn('/obs-status endpoint not found on server.');
+                 updateStreamStatusIndicator(false, 'Błąd konfiguracji serwera (brak /obs-status)');
+            } else {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        });
+            obsFrontendState.obsConnected = false;
+            obsFrontendState.streamActive = false;
+            obsFrontendState.micMuted = true; 
+        } else {
+            const data = await response.json();
+            obsFrontendState.obsConnected = data.obsConnected;
+            obsFrontendState.streamActive = data.streamActive;
+            obsFrontendState.micMuted = data.micMuted !== undefined ? data.micMuted : true; 
+            obsFrontendState.selectedMicNameBackend = data.selectedMicName || 'Mikrofon'; 
 
-
-    } catch (error) {
-        console.error('OBS WebSocket connection error:', error.message);
-        obsConnectionState.connected = false;
-        obsConnectionState.reconnecting = false;
-        updateStreamStatusIndicator(false, 'Błąd połączenia');
-        // Można dodać logikę ponawiania z backoffem
-        setTimeout(connectToOBS, 10000); // Spróbuj ponownie po 10s
-    }
-}
-
-async function fetchOBSState() {
-    if (!obsConnectionState.connected) return;
-    try {
-        // Stream Status
-        const streamStatus = await obs.call('GetStreamStatus');
-        obsConnectionState.streamActive = streamStatus.outputActive;
-        updateStreamControlButton();
-
-        // Mic Status (użyj zapisanego mikrofonu lub domyślnego)
-        const selectedMic = localStorage.getItem('selectedMicName') || (micSelectEl.options.length > 0 ? micSelectEl.value : 'Mikrofon');
-        if (selectedMic) {
-            const muteStatus = await obs.call('GetInputMute', { inputName: selectedMic });
-            obsConnectionState.micMuted = muteStatus.inputMuted;
-            updateMicVisuals();
+            updateStreamStatusIndicator(obsFrontendState.obsConnected, data.obsStatusText);
         }
-        populateAudioInputSources(); // Wypełnij listę mikrofonów
+
+        updateStreamControlButton();
+        updateMicVisuals(); 
+
+        if (obsFrontendState.obsConnected) {
+            populateAudioInputSources(); 
+        } else {
+            if(micSelectEl) micSelectEl.innerHTML = '<option value="">OBS niepołączony</option>';
+        }
+
     } catch (error) {
-        console.error("Error fetching initial OBS state:", error);
+        console.error('Error fetching OBS state from backend:', error);
+        updateStreamStatusIndicator(false, 'Błąd odczytu statusu OBS');
+        obsFrontendState.obsConnected = false; 
+        obsFrontendState.streamActive = false;
+        obsFrontendState.micMuted = true;
+        updateStreamControlButton();
+        updateMicVisuals();
+        if(micSelectEl) micSelectEl.innerHTML = '<option value="">Błąd serwera</option>';
     }
 }
 
 
 // --- UI UPDATES ---
-function updateStreamStatusIndicator(connected, statusText = null) {
+function updateStreamStatusIndicator(connectedToOBSByBackend, statusTextFromServer = null) {
     if (!streamStatusIndicatorEl || !streamStatusTextEl) return;
-    if (connected) {
+    
+    if (connectedToOBSByBackend) {
         streamStatusIndicatorEl.classList.remove('bg-red-500', 'bg-yellow-500');
         streamStatusIndicatorEl.classList.add('bg-green-500', 'pulse');
-        streamStatusTextEl.textContent = statusText || 'POŁĄCZONO Z OBS';
+        streamStatusTextEl.textContent = statusTextFromServer || 'OBS: POŁĄCZONO';
         streamStatusTextEl.classList.remove('text-red-400', 'text-yellow-400');
         streamStatusTextEl.classList.add('text-green-400');
     } else {
         streamStatusIndicatorEl.classList.remove('bg-green-500', 'pulse');
-        streamStatusIndicatorEl.classList.add('bg-red-500');
-        streamStatusTextEl.textContent = statusText || 'BRAK POŁĄCZENIA Z OBS';
-        streamStatusTextEl.classList.remove('text-green-400', 'text-yellow-400');
-        streamStatusTextEl.classList.add('text-red-400');
+        streamStatusTextEl.classList.remove('text-green-400');
+        if (statusTextFromServer && statusTextFromServer.toUpperCase().includes('BŁĄD')) { 
+            streamStatusIndicatorEl.classList.add('bg-yellow-500'); 
+            streamStatusTextEl.textContent = statusTextFromServer;
+            streamStatusTextEl.classList.add('text-yellow-400');
+        } else {
+            streamStatusIndicatorEl.classList.add('bg-red-500'); 
+            streamStatusTextEl.textContent = statusTextFromServer || 'OBS: BRAK POŁĄCZENIA';
+            streamStatusTextEl.classList.add('text-red-400');
+        }
     }
 }
 
 function updateStreamControlButton() {
     if (!streamControlBtn || !streamControlIcon || !streamControlText) return;
-    if (obsConnectionState.streamActive) {
+    streamControlBtn.disabled = !obsFrontendState.obsConnected; 
+
+    if (obsFrontendState.streamActive) {
         streamControlBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
         streamControlBtn.classList.add('bg-red-600', 'hover:bg-red-700');
         streamControlIcon.classList.remove('fa-play');
@@ -202,13 +165,14 @@ function updateCurrentTime() {
 }
 
 function updateTimerDisplayUI(minutes, seconds) {
-    if (timerDisplayEl && !timerDisplayEl.querySelector('input')) { // Nie aktualizuj, jeśli input jest aktywny
+    if (timerDisplayEl && !timerDisplayEl.querySelector('input')) { 
         timerDisplayEl.textContent = `${pad(minutes)}:${pad(seconds)}`;
     }
 }
 
 function updateTimerToggleButtonUI(running) {
     if (!timerToggleBtn || !timerToggleIcon || !timerToggleText) return;
+    isTimerRunning = running; 
     if (running) {
         timerToggleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
         timerToggleBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
@@ -225,21 +189,24 @@ function updateTimerToggleButtonUI(running) {
 }
 
 function updateMicVisuals() {
-    if (!micToggleBtn || !micIconEl) return;
-    const selectedMicName = localStorage.getItem('selectedMicName') || (micSelectEl.options.length > 0 ? micSelectEl.value : 'Mikrofon');
+    if (!micToggleBtn || !micIconEl || !micSelectEl) return;
     
-    if (obsConnectionState.micMuted) {
+    const userSelectedMicName = localStorage.getItem('selectedMicName') || micSelectEl.value || obsFrontendState.selectedMicNameBackend;
+    
+    micToggleBtn.disabled = !obsFrontendState.obsConnected || !micSelectEl.value; 
+
+    if (obsFrontendState.micMuted) {
         micToggleBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
         micToggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
         micIconEl.classList.remove('fa-microphone');
         micIconEl.classList.add('fa-microphone-slash');
-        micToggleBtn.setAttribute('aria-label', `Włącz mikrofon ${selectedMicName}`);
+        micToggleBtn.setAttribute('aria-label', `Włącz mikrofon: ${userSelectedMicName}`);
     } else {
         micToggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
         micToggleBtn.classList.add('bg-green-600', 'hover:bg-green-700');
         micIconEl.classList.remove('fa-microphone-slash');
         micIconEl.classList.add('fa-microphone');
-        micToggleBtn.setAttribute('aria-label', `Wycisz mikrofon ${selectedMicName}`);
+        micToggleBtn.setAttribute('aria-label', `Wycisz mikrofon: ${userSelectedMicName}`);
     }
 }
 
@@ -261,38 +228,30 @@ function setupTabs() {
     });
 }
 
-// --- TIMER LOGIC ---
+// --- TIMER LOGIC (via Backend) ---
 async function handleTimerAction(action, minutes = null, seconds = null) {
-    if (!obsConnectionState.connected && !['set', 'set45', 'setZero', 'reset'].includes(action)) { // Allow local set/reset if not connected
-        alert('Brak połączenia z OBS. Nie można sterować timerem.');
-        return;
-    }
     try {
         const payload = { action };
         if (minutes !== null) payload.minute = pad(minutes);
         if (seconds !== null) payload.second = pad(seconds);
 
-        const response = await fetch('/update-time', {
+        const response = await fetch('/update-time', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        if (!response.ok) throw new Error(`Błąd serwera: ${response.statusText}`);
-        
-        const data = await response.json();
-        isTimerRunning = data.running; // Serwer powinien zwrócić aktualny stan
-        updateTimerToggleButtonUI(isTimerRunning);
-        if (data.minute !== undefined && data.second !== undefined) {
-             updateTimerDisplayUI(data.minute, data.second);
-        } else if (action === 'reset' || action === 'setZero') {
-            updateTimerDisplayUI('00', '00');
-        } else if (action === 'set45') {
-            updateTimerDisplayUI('45', '00');
+        if (!response.ok) { 
+             const errorText = await response.text(); 
+             throw new Error(`Błąd serwera: ${response.status} ${response.statusText}. ${errorText}`);
         }
+        
+        const data = await response.json(); 
+        updateTimerToggleButtonUI(data.running); 
+        updateTimerDisplayUI(data.minute, data.second); 
 
     } catch (error) {
         console.error(`Error ${action} timer:`, error);
-        alert(`Nie udało się wykonać akcji timera: ${action}.`);
+        alert(`Nie udało się wykonać akcji timera: ${action}. ${error.message}`);
     }
 }
 
@@ -307,7 +266,7 @@ function setupTimerControls() {
 function setupTimerEditMode() {
     if (!timerDisplayEl || !timerEditBtn) return;
     timerEditBtn.addEventListener('click', () => {
-        if (timerDisplayEl.querySelector('input')) return; // Already in edit mode
+        if (timerDisplayEl.querySelector('input')) return; 
 
         const currentText = timerDisplayEl.textContent;
         const input = document.createElement('input');
@@ -315,62 +274,107 @@ function setupTimerEditMode() {
         input.value = currentText;
         input.className = 'text-5xl font-mono font-bold text-center text-white bg-transparent w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded';
         
-        timerDisplayEl.innerHTML = ''; // Clear current text
+        timerDisplayEl.innerHTML = ''; 
         timerDisplayEl.appendChild(input);
         input.focus();
         input.select();
 
-        const बाहरJa = async (save) => {
+        const finalizeEdit = async (save) => { 
             const newTime = input.value.trim();
-            timerDisplayEl.innerHTML = currentText; // Restore original or new time
+            let shouldRestoreOriginal = true;
+
+            if (timerDisplayEl.contains(input)) {
+                 timerDisplayEl.removeChild(input);
+            }
+            
             if (save && /^\d{1,2}:\d{2}$/.test(newTime)) {
                 const [min, sec] = newTime.split(':').map(Number);
-                await handleTimerAction('set', min, sec);
-                timerDisplayEl.textContent = `${pad(min)}:${pad(sec)}`;
+                await handleTimerAction('set', min, sec); 
+                // Po udanej odpowiedzi serwera, UI zostanie zaktualizowane przez handleTimerAction
+                shouldRestoreOriginal = false; // Nie przywracaj, bo serwer zaktualizuje
             } else if (save) {
                 alert('Nieprawidłowy format czasu. Użyj MM:SS.');
-                timerDisplayEl.textContent = currentText; // Restore original if invalid
+            }
+            
+            if (shouldRestoreOriginal) {
+                timerDisplayEl.textContent = currentText; 
             }
         };
 
-        input.addEventListener('blur', () => बाहरJa(false)); // Save on blur could be added by passing true
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                 if (document.activeElement !== input && timerDisplayEl.contains(input)) { 
+                    finalizeEdit(false); 
+                 } else if (!timerDisplayEl.contains(input) && document.activeElement !== input) {
+                    // Input already removed, do nothing
+                 }
+            }, 100);
+        });
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') बाहरJa(true);
-            if (e.key === 'Escape') बाहरJa(false);
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+                finalizeEdit(true);
+            }
+            if (e.key === 'Escape') {
+                 e.preventDefault();
+                 finalizeEdit(false);
+            }
         });
     });
 }
 
+// --- Funkcja do cyklicznego pobierania stanu timera ---
+async function fetchAndUpdateTimerState() {
+    try {
+        const response = await fetch('/timer-state'); // Endpoint zdefiniowany w server.js
+        if (!response.ok) {
+            // Nie rzucaj błędem, który zatrzyma interwał, ale zaloguj problem
+            console.warn(`Błąd pobierania stanu timera: ${response.status} ${response.statusText}`);
+            return; 
+        }
+        const data = await response.json();
+        if (data && data.minute !== undefined && data.second !== undefined) {
+            updateTimerDisplayUI(data.minute, data.second);
+            // Można też zaktualizować isTimerRunning i przycisk, jeśli serwer zwraca 'running'
+            if (data.running !== undefined) {
+                 updateTimerToggleButtonUI(data.running);
+            }
+        }
+    } catch (error) {
+        console.error('Nie udało się pobrać stanu timera:', error);
+    }
+}
 
-// --- SCORE LOGIC ---
+
+// --- SCORE LOGIC (via Backend) ---
 async function updateScore(team, delta) {
     const currentScore = team === 'home' ? homeScore : awayScore;
     const newScore = Math.max(0, currentScore + delta);
 
     if (team === 'home') homeScore = newScore;
     else awayScore = newScore;
-
     if (scoreHomeDisplay) scoreHomeDisplay.textContent = homeScore;
     if (scoreAwayDisplay) scoreAwayDisplay.textContent = awayScore;
-    
-    // Update scorebug inputs as well, if they exist
     if (homeScoreBugInput) homeScoreBugInput.value = homeScore;
     if (awayScoreBugInput) awayScoreBugInput.value = awayScore;
 
     try {
-        await fetch('/update-score', {
+        await fetch('/update-score', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ team, score: newScore })
+            body: JSON.stringify({ team, score: newScore }) 
         });
     } catch (error) {
         console.error('Błąd aktualizacji wyniku na serwerze:', error);
-        // Revert UI on error? Or show error message.
+        if (team === 'home') homeScore -= delta; else awayScore -= delta;
+        if (scoreHomeDisplay) scoreHomeDisplay.textContent = homeScore;
+        if (scoreAwayDisplay) scoreAwayDisplay.textContent = awayScore;
+        alert('Nie udało się zaktualizować wyniku na serwerze.');
     }
 }
 
 function setupScoreControls() {
-    qa('.update-score-btn').forEach(button => {
+    qa('#score-tab .update-score-btn').forEach(button => { 
         button.addEventListener('click', () => {
             const team = button.dataset.team;
             const action = button.dataset.action === 'increment' ? 1 : -1;
@@ -390,7 +394,7 @@ async function loadPlayers() {
             ...(data.home || []).map(p => ({ ...p, team: 'home', displayName: `${p.lastname} ${p.firstname} (${p.number})` })),
             ...(data.away || []).map(p => ({ ...p, team: 'away', displayName: `${p.lastname} ${p.firstname} (${p.number})` }))
         ];
-        allPlayers.sort((a,b) => a.displayName.localeCompare(b.displayName)); // Sort all players for combined lists if needed
+        allPlayers.sort((a,b) => a.displayName.localeCompare(b.displayName)); 
 
         populatePlayerList(homePlayersListEl, data.home || [], 'home');
         populatePlayerList(awayPlayersListEl, data.away || [], 'away');
@@ -403,7 +407,7 @@ async function loadPlayers() {
 
 function populatePlayerList(listElement, players, teamName) {
     if (!listElement) return;
-    listElement.innerHTML = ''; // Clear existing
+    listElement.innerHTML = ''; 
     if (!players || players.length === 0) {
         listElement.innerHTML = `<p class="text-slate-500 text-xs text-center py-4">Brak zawodników dla ${teamName === 'home' ? 'gospodarzy' : 'gości'}.</p>`;
         return;
@@ -414,7 +418,6 @@ function populatePlayerList(listElement, players, teamName) {
         item.className = 'player-item p-2 rounded hover:bg-slate-700 cursor-pointer flex items-center text-sm';
         item.dataset.team = teamName;
         item.dataset.number = player.number;
-        // item.innerHTML = `<div class="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-xs mr-2 player-number-badge">${player.number}</div><span>${player.lastname} ${player.firstname}</span>`;
         item.innerHTML = `<span class="font-mono text-xs w-6 text-center mr-2 opacity-70">${pad(player.number)}</span><span>${player.lastname} ${player.firstname}</span>`;
         item.addEventListener('click', () => handlePlayerSelection(item, player, teamName));
         listElement.appendChild(item);
@@ -434,15 +437,14 @@ function handlePlayerSelection(element, player, team) {
                 return;
             }
             if (selectedPlayers.length >= 2) {
-                // Deselect the first selected player if trying to select a third for a change
                 const firstSelected = selectedPlayers.shift();
-                const firstSelectedEl = qa(`.player-item.selected[data-team='${firstSelected.team}'][data-number='${firstSelected.number}']`);
+                const firstSelectedEl = qa(`#notifications-tab .player-item.selected[data-team='${firstSelected.team}'][data-number='${firstSelected.number}']`); // Uściślenie
                 if (firstSelectedEl.length > 0) firstSelectedEl[0].classList.remove('selected');
             }
-        } else { // For goal, card, injury - only one player
+        } else { 
             if (selectedPlayers.length > 0) {
                 const prevSelected = selectedPlayers.pop();
-                const prevSelectedEl = qa(`.player-item.selected[data-team='${prevSelected.team}'][data-number='${prevSelected.number}']`);
+                const prevSelectedEl = qa(`#notifications-tab .player-item.selected[data-team='${prevSelected.team}'][data-number='${prevSelected.number}']`); // Uściślenie
                 if (prevSelectedEl.length > 0) prevSelectedEl[0].classList.remove('selected');
             }
         }
@@ -454,7 +456,7 @@ function handlePlayerSelection(element, player, team) {
 
 function updateNotificationInstructionsUI() {
     if (!notificationInstructionsEl) return;
-    const type = notificationType; // Use the global notificationType
+    const type = notificationType; 
     if (type === 'change') notificationInstructionsEl.textContent = 'Wybierz dwóch zawodników z tej samej drużyny (pierwszy schodzi, drugi wchodzi).';
     else if (type === 'yellow-card') notificationInstructionsEl.textContent = 'Wybierz zawodnika, który otrzymał żółtą kartkę.';
     else if (type === 'red-card') notificationInstructionsEl.textContent = 'Wybierz zawodnika, który otrzymał czerwoną kartkę.';
@@ -464,9 +466,9 @@ function updateNotificationInstructionsUI() {
 }
 
 function clearAllPlayerSelections() {
-    qa('.player-item.selected').forEach(el => el.classList.remove('selected'));
+    qa('#notifications-tab .player-item.selected').forEach(el => el.classList.remove('selected')); 
     selectedPlayers = [];
-    updateUINotificationPreview(); // Update preview to reflect cleared selection
+    updateUINotificationPreview(); 
 }
 
 function setupNotificationControls() {
@@ -474,21 +476,22 @@ function setupNotificationControls() {
         notificationTypesContainer.addEventListener('click', (e) => {
             const button = e.target.closest('.notification-type-btn');
             if (button) {
-                qa('.notification-type-btn').forEach(btn => btn.classList.remove('active', 'border-indigo-500', 'shadow-lg'));
+                qa('#notifications-tab .notification-type-btn').forEach(btn => btn.classList.remove('active', 'border-indigo-500', 'shadow-lg')); 
                 button.classList.add('active', 'border-indigo-500', 'shadow-lg');
                 notificationType = button.dataset.type;
                 updateNotificationInstructionsUI();
-                clearAllPlayerSelections(); // Clear selections when type changes
+                clearAllPlayerSelections(); 
             }
         });
     }
     if (sendNotificationBtn) {
         sendNotificationBtn.addEventListener('click', sendUINotification);
     }
-    // Set default active notification type
-    const defaultNotifBtn = q('.notification-type-btn[data-type="change"]');
+    const defaultNotifBtn = q('#notifications-tab .notification-type-btn[data-type="change"]');
     if (defaultNotifBtn) {
-        defaultNotifBtn.click(); // Simulate click to set initial state
+        defaultNotifBtn.click(); 
+    } else if (qa('#notifications-tab .notification-type-btn').length > 0) {
+        qa('#notifications-tab .notification-type-btn')[0].click();
     }
 }
 
@@ -516,9 +519,8 @@ async function updateUINotificationPreview() {
     const playerOut = selectedPlayers[0];
     const playerIn = (notificationType === 'change' && selectedPlayers.length > 1) ? selectedPlayers[1] : null;
     
-    notificationTeam = playerOut.team; // Set based on the first selected player
+    notificationTeam = playerOut.team; 
 
-    // Update labels and content
     let labelText = '';
     switch (notificationType) {
         case 'change': labelText = 'Zmiana'; break;
@@ -531,8 +533,7 @@ async function updateUINotificationPreview() {
     previewChangeLabelEl.textContent = labelText;
 
     previewPlayerOutEl.querySelector('.name').textContent = `${playerOut.lastname} ${playerOut.firstname}`;
-    // Icons for player out based on type
-    let outIconHtml = '➡️'; // Default for change
+    let outIconHtml = '➡️'; 
     if (notificationType === 'yellow-card') outIconHtml = '<i class="fas fa-square text-yellow-400"></i>';
     else if (notificationType === 'red-card') outIconHtml = '<i class="fas fa-square text-red-500"></i>';
     else if (notificationType === 'injury') outIconHtml = '<i class="fas fa-medkit text-gray-400"></i>';
@@ -552,9 +553,8 @@ async function updateUINotificationPreview() {
         q('#notification-preview .player-list').classList.add('one-player');
     }
 
-    // Fetch current team names and colors for preview styling
     try {
-        const settingsRes = await fetch('/initial-settings'); // Scorebug settings for colors/names
+        const settingsRes = await fetch('/initial-settings'); 
         const settings = await settingsRes.json();
         
         previewTeamNameEl.textContent = notificationTeam === 'home' ? (settings.homeName || 'GOSPODARZE') : (settings.awayName || 'GOŚCIE');
@@ -565,15 +565,18 @@ async function updateUINotificationPreview() {
         if(teamHeaderDiv) teamHeaderDiv.style.backgroundColor = settings.teamBackground;
         if(previewTeamNameEl) previewTeamNameEl.style.color = settings.teamTextColor;
 
-        if(previewChangeLabelEl.parentElement) previewChangeLabelEl.parentElement.style.backgroundColor = settings.goalsBackground;
-        if(previewChangeLabelEl) previewChangeLabelEl.style.color = settings.goalsTextColor;
+        const changeHeaderDiv = q('#notification-preview .change-header');
+        if(changeHeaderDiv) {
+            changeHeaderDiv.style.backgroundColor = settings.goalsBackground;
+            changeHeaderDiv.style.color = settings.goalsTextColor;
+        }
         
         if(previewPlayerOutEl) {
-            previewPlayerOutEl.style.backgroundColor = settings.teamBackground; // Same as team header
+            previewPlayerOutEl.style.backgroundColor = settings.teamBackground; 
             previewPlayerOutEl.style.color = settings.teamTextColor;
         }
-        if(playerIn && previewPlayerInEl){ // Style for incoming player
-            previewPlayerInEl.style.backgroundColor = settings.teamTextColor; // Inverted colors
+        if(playerIn && previewPlayerInEl){ 
+            previewPlayerInEl.style.backgroundColor = settings.teamTextColor; 
             previewPlayerInEl.style.color = settings.teamBackground;
         }
 
@@ -591,7 +594,7 @@ async function sendUINotification() {
 
     const data = {
         type: notificationType,
-        team: selectedPlayers[0].team, // Team of the first selected player
+        team: selectedPlayers[0].team, 
         playerOut: selectedPlayers[0],
         playerIn: (notificationType === 'change' && selectedPlayers.length > 1) ? selectedPlayers[1] : null,
         timestamp: Date.now()
@@ -605,8 +608,8 @@ async function sendUINotification() {
         });
         if (!response.ok) throw new Error(`Błąd serwera: ${response.statusText}`);
         
-        addRecentActivityUI(data); // Add to UI list
-        clearAllPlayerSelections(); // Clear selection and update preview
+        addRecentActivityUI(data); 
+        clearAllPlayerSelections(); 
         console.log('Powiadomienie wysłane:', data);
     } catch (error) {
         console.error('Błąd wysyłania powiadomienia:', error);
@@ -648,7 +651,6 @@ function setupQuickActions() {
                 }
             }
         });
-         // Hide suggestions when clicking outside
         document.addEventListener('click', (e) => {
             if (playerSearchSuggestionsEl && !playerSearchInput.contains(e.target) && !playerSearchSuggestionsEl.contains(e.target)) {
                 playerSearchSuggestionsEl.classList.add('hidden');
@@ -663,13 +665,11 @@ function showQuickNotificationModalUI() {
         <div class="font-semibold text-indigo-400">${currentQuickPlayer.displayName}</div>
         <div class="text-xs text-slate-400">${currentQuickPlayer.team === 'home' ? 'Gospodarze' : 'Goście'}</div>`;
     
-    // Reset state
     currentQuickNotificationType = null;
     currentQuickPlayerIn = null;
     if(quickChangeSelectContainer) quickChangeSelectContainer.classList.add('hidden');
     if(quickSendBtn) quickSendBtn.disabled = true;
-    qa('.quick-notif-btn').forEach(btn => btn.classList.remove('bg-indigo-500', 'ring-2', 'ring-indigo-400'));
-
+    if(quickNotifBtns) quickNotifBtns.forEach(btn => btn.classList.remove('bg-indigo-500', 'ring-2', 'ring-indigo-400'));
 
     quickNotificationModal.classList.remove('hidden');
 }
@@ -681,13 +681,13 @@ function setupQuickNotificationModalActions() {
         quickNotifBtns.forEach(btn => {
             btn.onclick = () => {
                 currentQuickNotificationType = btn.dataset.type;
-                quickNotifBtns.forEach(b => b.classList.remove('bg-indigo-500', 'ring-2', 'ring-indigo-400'));
-                btn.classList.add('bg-indigo-500', 'ring-2', 'ring-indigo-400');
+                quickNotifBtns.forEach(b => b.classList.remove('bg-indigo-500', 'ring-2', 'ring-indigo-400')); 
+                btn.classList.add('bg-indigo-500', 'ring-2', 'ring-indigo-400'); 
 
                 if (currentQuickNotificationType === 'change') {
                     populateQuickChangePlayerInSelect();
                     if(quickChangeSelectContainer) quickChangeSelectContainer.classList.remove('hidden');
-                    if(quickSendBtn) quickSendBtn.disabled = !quickChangePlayerInSelect.value; // Enable if a player is selected
+                    if(quickSendBtn) quickSendBtn.disabled = !quickChangePlayerInSelect.value; 
                 } else {
                     if(quickChangeSelectContainer) quickChangeSelectContainer.classList.add('hidden');
                     if(quickSendBtn) quickSendBtn.disabled = false;
@@ -713,7 +713,7 @@ function setupQuickNotificationModalActions() {
             const notificationData = {
                 type: currentQuickNotificationType,
                 team: currentQuickPlayer.team,
-                playerOut: currentQuickPlayer, // For goal/card/injury, this is the main player
+                playerOut: currentQuickPlayer, 
                 playerIn: currentQuickNotificationType === 'change' ? currentQuickPlayerIn : null,
                 timestamp: Date.now()
             };
@@ -737,14 +737,14 @@ function setupQuickNotificationModalActions() {
 function populateQuickChangePlayerInSelect() {
     if (!quickChangePlayerInSelect || !currentQuickPlayer) return;
     const teamPlayers = allPlayers.filter(p => p.team === currentQuickPlayer.team && p.number !== currentQuickPlayer.number);
-    quickChangePlayerInSelect.innerHTML = '<option value="">Wybierz...</option>'; // Default empty option
+    quickChangePlayerInSelect.innerHTML = '<option value="">Wybierz...</option>'; 
     teamPlayers.forEach(p => {
         const option = document.createElement('option');
         option.value = p.number;
         option.textContent = p.displayName;
         quickChangePlayerInSelect.appendChild(option);
     });
-    currentQuickPlayerIn = null; // Reset selected incoming player
+    currentQuickPlayerIn = null; 
 }
 
 
@@ -759,7 +759,7 @@ function addRecentActivityUI(activity) {
 
 function renderRecentActivitiesUI() {
     if (!recentActivitiesListEl) return;
-    recentActivitiesListEl.innerHTML = ''; // Clear current list
+    recentActivitiesListEl.innerHTML = ''; 
 
     if (recentActivities.length === 0) {
         recentActivitiesListEl.innerHTML = `
@@ -836,7 +836,7 @@ function setupRepeatActivityModalActions() {
     if(repeatActivityBtn) {
         repeatActivityBtn.onclick = async () => {
             if (!currentRepeatActivity) return;
-            const repeatData = { ...currentRepeatActivity, timestamp: Date.now() }; // New timestamp
+            const repeatData = { ...currentRepeatActivity, timestamp: Date.now() }; 
             try {
                 const response = await fetch('/update-notification', {
                     method: 'POST',
@@ -855,72 +855,76 @@ function setupRepeatActivityModalActions() {
     if(repeatActivityNewBtn) {
         repeatActivityNewBtn.onclick = () => {
             if (!currentRepeatActivity || !currentRepeatActivity.playerOut) return;
-            currentQuickPlayer = currentRepeatActivity.playerOut; // Set for quick modal
+            currentQuickPlayer = currentRepeatActivity.playerOut; 
             repeatActivityModal.classList.add('hidden');
-            showQuickNotificationModalUI(); // Open quick modal with this player
+            showQuickNotificationModalUI(); 
         };
     }
 }
 
 
-// --- SCENES ---
+// --- SCENES (via Backend) ---
 function setupSceneControls() {
     qa('.switch-scene-btn').forEach(button => {
         button.addEventListener('click', async () => {
-            if (!obsConnectionState.connected) {
-                alert('Brak połączenia z OBS. Nie można przełączyć sceny.');
-                return;
-            }
             const sceneName = button.dataset.sceneName;
             try {
-                await obs.call('SetCurrentProgramScene', { sceneName });
-                console.log(`Przełączono na scenę: ${sceneName}`);
-                // Można dodać wizualne potwierdzenie
+                const response = await fetch('/switch-scene', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sceneName })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(()=>({message: `Błąd serwera: ${response.statusText}`}));
+                    throw new Error(errorData.message || `Błąd przełączania sceny na serwerze: ${response.statusText}`);
+                }
+                console.log(`Wysłano żądanie przełączenia na scenę: ${sceneName}`);
             } catch (error) {
                 console.error(`Błąd przełączania na scenę ${sceneName}:`, error);
-                alert(`Nie udało się przełączyć na scenę: ${sceneName}. Sprawdź konsolę OBS.`);
+                alert(`Nie udało się przełączyć na scenę: ${sceneName}. (${error.message})`);
             }
         });
     });
 }
 
 // --- SETTINGS ---
-// Scorebug Settings
+// Scorebug Settings (via Backend)
 function loadScorebugSettings() {
-    // Nazwy i wyniki są ładowane przez loadInitialDataForScoreDisplay
-    // Kolory:
-    const settings = { // Domyślne wartości, jeśli serwer nie odpowie lub nie ma zapisanych
+    const defaults = { 
         homeColor: '#C8102E', awayColor: '#1B449C', teamBackground: '#34003A',
         goalsBackground: '#00FC8A', timeBackground: '#FFFFFF', teamTextColor: '#FFFFFF',
         goalsTextColor: '#34003A', timeTextColor: '#34003A',
         homeName: 'GOSPODARZE', awayName: 'GOŚCIE', homeScore: 0, awayScore: 0
     };
 
-    fetch('/initial-settings') // Endpoint dla ustawień scorebuga
-        .then(res => res.ok ? res.json() : Promise.reject(new Error(res.statusText)))
-        .then(data => {
-            Object.assign(settings, data); // Nadpisz domyślne załadowanymi
-            if (homeTeamNameScorebugInput) homeTeamNameScorebugInput.value = settings.homeName;
-            if (awayTeamNameScorebugInput) awayTeamNameScorebugInput.value = settings.awayName;
-            if (homeScoreBugInput) homeScoreBugInput.value = settings.homeScore;
-            if (awayScoreBugInput) awayScoreBugInput.value = settings.awayScore;
+    fetch('/initial-settings') 
+        .then(res => res.ok ? res.json() : Promise.resolve(defaults)) 
+        .then(settings => {
+            const s = { ...defaults, ...settings }; 
+            if (homeTeamNameScorebugInput) homeTeamNameScorebugInput.value = s.homeName;
+            if (awayTeamNameScorebugInput) awayTeamNameScorebugInput.value = s.awayName;
+            if (homeScoreBugInput) homeScoreBugInput.value = s.homeScore;
+            if (awayScoreBugInput) awayScoreBugInput.value = s.awayScore;
 
-            if (homeTeamColorInput) homeTeamColorInput.value = settings.homeColor;
-            if (awayTeamColorInput) awayTeamColorInput.value = settings.awayColor;
-            if (teamBackgroundColorInput) teamBackgroundColorInput.value = settings.teamBackground;
-            if (goalsBackgroundColorInput) goalsBackgroundColorInput.value = settings.goalsBackground;
-            if (timeBackgroundColorInput) timeBackgroundColorInput.value = settings.timeBackground;
-            if (teamTextColorInput) teamTextColorInput.value = settings.teamTextColor;
-            if (goalsTextColorInput) goalsTextColorInput.value = settings.goalsTextColor;
-            if (timeTextColorInput) timeTextColorInput.value = settings.timeTextColor;
+            if (homeTeamColorInput) homeTeamColorInput.value = s.homeColor;
+            if (awayTeamColorInput) awayTeamColorInput.value = s.awayColor;
+            if (teamBackgroundColorInput) teamBackgroundColorInput.value = s.teamBackground;
+            if (goalsBackgroundColorInput) goalsBackgroundColorInput.value = s.goalsBackground;
+            if (timeBackgroundColorInput) timeBackgroundColorInput.value = s.timeBackground;
+            if (teamTextColorInput) teamTextColorInput.value = s.teamTextColor;
+            if (goalsTextColorInput) goalsTextColorInput.value = s.goalsTextColor;
+            if (timeTextColorInput) timeTextColorInput.value = s.timeTextColor;
             updateHexDisplays();
         })
         .catch(error => {
-            console.error("Błąd ładowania ustawień scorebuga:", error);
-            // Użyj domyślnych, jeśli są zdefiniowane elementy
-            if (homeTeamNameScorebugInput) homeTeamNameScorebugInput.value = settings.homeName;
-            // ... reszta domyślnych ...
-            updateHexDisplays(); // Aktualizuj HEX dla domyślnych kolorów
+            console.error("Błąd ładowania ustawień scorebuga, używam domyślnych:", error);
+            if (homeTeamNameScorebugInput) homeTeamNameScorebugInput.value = defaults.homeName;
+            if (awayTeamNameScorebugInput) awayTeamNameScorebugInput.value = defaults.awayName;
+            if (homeScoreBugInput) homeScoreBugInput.value = defaults.homeScore;
+            if (awayScoreBugInput) awayScoreBugInput.value = defaults.awayScore;
+            if (homeTeamColorInput) homeTeamColorInput.value = defaults.homeColor;
+            // ... i tak dalej dla pozostałych domyślnych kolorów ...
+            updateHexDisplays();
         });
 }
 
@@ -968,10 +972,9 @@ function setupScorebugSettingsControls() {
                 });
                 if (!response.ok) throw new Error('Błąd aktualizacji scorebuga na serwerze.');
                 alert('Ustawienia scorebuga zaktualizowane!');
-                // Odśwież wyświetlanie wyników w zakładce "Wynik", jeśli są powiązane
-                homeScore = scorebugData.homeScore;
+                homeScore = scorebugData.homeScore; 
                 awayScore = scorebugData.awayScore;
-                if(scoreHomeDisplay) scoreHomeDisplay.textContent = homeScore;
+                if(scoreHomeDisplay) scoreHomeDisplay.textContent = homeScore; 
                 if(scoreAwayDisplay) scoreAwayDisplay.textContent = awayScore;
                 if(scoreHomeNameDisplay && homeTeamNameScorebugInput) scoreHomeNameDisplay.textContent = homeTeamNameScorebugInput.value;
                 if(scoreAwayNameDisplay && awayTeamNameScorebugInput) scoreAwayNameDisplay.textContent = awayTeamNameScorebugInput.value;
@@ -984,7 +987,7 @@ function setupScorebugSettingsControls() {
     }
 }
 
-// Intro Settings
+// Intro Settings (via Backend)
 function loadIntroSettings() {
     fetch('/initial-intro-settings')
         .then(res => res.ok ? res.json() : Promise.reject(new Error(res.statusText)))
@@ -1035,7 +1038,6 @@ function handleLogoUpload(event, previewElement, teamType) {
         if (teamType === 'home') homeLogoFile = file;
         else if (teamType === 'away') awayLogoFile = file;
     } else {
-        // Nie czyścimy, jeśli nie wybrano pliku, aby zachować obraz z serwera
         if (teamType === 'home') homeLogoFile = null;
         else if (teamType === 'away') awayLogoFile = null;
     }
@@ -1059,58 +1061,59 @@ async function saveIntroSettingsData() {
             throw new Error(`Błąd HTTP: ${response.status}. ${errData.message}`);
         }
         alert('Ustawienia Intro zaktualizowane!');
-        if(introHomeLogoUploadInput) introHomeLogoUploadInput.value = null; // Clear file input
+        if(introHomeLogoUploadInput) introHomeLogoUploadInput.value = null; 
         if(introAwayLogoUploadInput) introAwayLogoUploadInput.value = null;
-        homeLogoFile = null; awayLogoFile = null; // Reset file cache
-        loadIntroSettings(); // Reload to show potentially new logo paths from server
+        homeLogoFile = null; awayLogoFile = null; 
+        loadIntroSettings(); 
     } catch (error) {
         console.error('Błąd zapisu ustawień Intro:', error);
         alert(`Nie udało się zapisać ustawień Intro: ${error.message}`);
     }
 }
 
-// OBS Stream Settings
+// OBS Stream Settings (Interaction via Backend)
 async function populateAudioInputSources() {
-    if (!obsConnectionState.connected || !micSelectEl) return;
+    if (!obsFrontendState.obsConnected || !micSelectEl) { 
+        if(micSelectEl) micSelectEl.innerHTML = '<option value="">OBS niepołączony</option>';
+        return;
+    }
     try {
-        const { inputs } = await obs.call('GetInputList', { inputKind: "wasapi_input_capture" }); // For Windows, adjust for other OS
-        // Other kinds: "coreaudio_input_capture" (macOS), "pulse_input_capture" (Linux)
-        // You might need to fetch multiple kinds or allow user to specify.
+        const response = await fetch('/obs-audio-inputs'); 
+        if (!response.ok) throw new Error('Błąd pobierania listy mikrofonów z serwera');
         
-        micSelectEl.innerHTML = ''; // Clear existing options
+        const data = await response.json(); 
+        const inputs = data.inputs || []; 
+        
+        micSelectEl.innerHTML = ''; 
         if (inputs && inputs.length > 0) {
             inputs.forEach(input => {
-                if (input.inputName) { // Ensure inputName exists
+                if (input.inputName) { 
                     const option = document.createElement('option');
                     option.value = input.inputName;
                     option.textContent = input.inputName;
                     micSelectEl.appendChild(option);
                 }
             });
-            // Restore selected mic or set to first
             const savedMic = localStorage.getItem('selectedMicName');
+            const currentBackendMic = obsFrontendState.selectedMicNameBackend;
+
             if (savedMic && micSelectEl.querySelector(`option[value="${savedMic}"]`)) {
                 micSelectEl.value = savedMic;
+            } else if (currentBackendMic && micSelectEl.querySelector(`option[value="${currentBackendMic}"]`)) {
+                micSelectEl.value = currentBackendMic; 
+                localStorage.setItem('selectedMicName', currentBackendMic);
             } else if (micSelectEl.options.length > 0) {
                 micSelectEl.value = micSelectEl.options[0].value;
                 localStorage.setItem('selectedMicName', micSelectEl.value);
             }
         } else {
-             micSelectEl.innerHTML = '<option value="">Brak dostępnych mikrofonów</option>';
+             micSelectEl.innerHTML = '<option value="">Brak mikrofonów</option>';
         }
-        // Update mic button based on newly selected/default mic
-        // fetchOBSState(); // This might cause a loop if called from fetchOBSState itself.
-        // Instead, directly update visuals if mute state is known or fetch it specifically.
-        if (micSelectEl.value) { // If a mic is selected (or defaulted)
-            const muteStatus = await obs.call('GetInputMute', { inputName: micSelectEl.value });
-            obsConnectionState.micMuted = muteStatus.inputMuted;
-            updateMicVisuals();
-        }
-
+        updateMicVisuals(); 
 
     } catch (error) {
-        console.error("Error fetching audio inputs:", error);
-        if(micSelectEl) micSelectEl.innerHTML = '<option value="">Błąd ładowania mikrofonów</option>';
+        console.error("Error fetching audio inputs via backend:", error);
+        if(micSelectEl) micSelectEl.innerHTML = '<option value="">Błąd ładowania</option>';
     }
 }
 
@@ -1118,34 +1121,33 @@ function setupStreamSettingsControls() {
     if (micSelectEl) {
         micSelectEl.addEventListener('change', async () => {
             localStorage.setItem('selectedMicName', micSelectEl.value);
-            // Fetch mute state for the new mic
-            if (obsConnectionState.connected && micSelectEl.value) {
-                try {
-                    const muteStatus = await obs.call('GetInputMute', { inputName: micSelectEl.value });
-                    obsConnectionState.micMuted = muteStatus.inputMuted;
-                    updateMicVisuals();
-                } catch (error) {
-                    console.error("Error fetching mute state for new mic:", error);
-                }
-            }
+            await fetchOBSBackendState(); 
         });
     }
     if (micToggleBtn) {
         micToggleBtn.addEventListener('click', async () => {
-            if (!obsConnectionState.connected) {
-                alert('Brak połączenia z OBS.'); return;
-            }
             const selectedMic = localStorage.getItem('selectedMicName') || (micSelectEl.options.length > 0 ? micSelectEl.value : null);
-            if (!selectedMic) {
-                alert('Nie wybrano mikrofonu.'); return;
+            if (!obsFrontendState.obsConnected || !selectedMic) {
+                alert(!obsFrontendState.obsConnected ? 'Brak połączenia z OBS.' : 'Nie wybrano mikrofonu.'); 
+                return;
             }
             try {
-                const newMuteState = !obsConnectionState.micMuted;
-                await obs.call('SetInputMute', { inputName: selectedMic, inputMuted: newMuteState });
-                // OBS event 'InputMuteStateChanged' should update obsConnectionState.micMuted and UI
+                const newMuteState = !obsFrontendState.micMuted;
+                const response = await fetch('/toggle-mic', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inputName: selectedMic, mute: newMuteState })
+                });
+                if (!response.ok) {
+                     const errorData = await response.json().catch(()=>({message: `Błąd serwera: ${response.statusText}`}));
+                    throw new Error(errorData.message || `Błąd przełączania mikrofonu na serwerze`);
+                }
+                const data = await response.json();
+                obsFrontendState.micMuted = data.muted; 
+                updateMicVisuals();
             } catch (error) {
-                console.error("Error toggling mic mute:", error);
-                alert('Nie udało się przełączyć mikrofonu.');
+                console.error("Error toggling mic mute via backend:", error);
+                alert(`Nie udało się przełączyć mikrofonu: ${error.message}`);
             }
         });
     }
@@ -1153,7 +1155,6 @@ function setupStreamSettingsControls() {
         bitrateSliderEl.addEventListener('input', () => {
             bitrateValueEl.textContent = bitrateSliderEl.value;
         });
-        // Add logic to actually set bitrate via OBS if API supports it, or save locally
     }
     if (clearPlayersCacheBtn) {
         clearPlayersCacheBtn.addEventListener('click', async () => {
@@ -1161,11 +1162,9 @@ function setupStreamSettingsControls() {
                 const response = await fetch('/api/clear-players-cache', { method: 'POST' });
                 if (!response.ok) throw new Error("Błąd serwera podczas czyszczenia cache.");
                 alert("Cache zawodników został wyczyszczony. Odśwież listę zawodników, jeśli jest otwarta.");
-                allPlayers = []; // Clear local cache too
-                // Optionally re-fetch players or prompt user
+                allPlayers = []; 
                 if(homePlayersListEl) homePlayersListEl.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">Cache wyczyszczony. Odśwież.</p>';
                 if(awayPlayersListEl) awayPlayersListEl.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">Cache wyczyszczony. Odśwież.</p>';
-
             } catch (error) {
                 console.error("Błąd czyszczenia cache zawodników:", error);
                 alert("Nie udało się wyczyścić cache zawodników.");
@@ -1174,24 +1173,21 @@ function setupStreamSettingsControls() {
     }
 }
 
-// --- OBS CONTROL (Top Bar) ---
+// --- OBS CONTROL (Top Bar - via Backend) ---
 function setupOBSControls() {
     if (streamControlBtn) {
         streamControlBtn.addEventListener('click', async () => {
-            if (!obsConnectionState.connected) {
-                alert('Brak połączenia z OBS.');
-                return;
-            }
+            const action = obsFrontendState.streamActive ? 'stop-stream' : 'start-stream';
             try {
-                if (obsConnectionState.streamActive) {
-                    await obs.call('StopStream');
-                } else {
-                    await obs.call('StartStream');
+                const response = await fetch(`/${action}`, { method: 'POST' }); 
+                if (!response.ok) {
+                     const errorData = await response.json().catch(()=>({message: `Błąd serwera: ${response.statusText}`}));
+                    throw new Error(errorData.message || `Błąd ${action} na serwerze`);
                 }
-                // StreamStateChanged event will update the button
+                await fetchOBSBackendState();
             } catch (error) {
-                console.error("Error toggling stream:", error);
-                alert('Nie udało się zmienić stanu streamu.');
+                console.error(`Error ${action} via backend:`, error);
+                alert(`Nie udało się wykonać akcji ${action}: ${error.message}`);
             }
         });
     }
@@ -1211,8 +1207,8 @@ document.addEventListener('DOMContentLoaded', () => {
     streamControlIcon = el('stream-control-icon');
     streamControlText = el('stream-control-text');
 
-    timerDisplayEl = el('timer-display'); // Match Tab Timer Display
-    timerEditBtn = el('timer-edit-btn'); // Corrected ID
+    timerDisplayEl = el('timer-display'); 
+    timerEditBtn = el('timer-edit-btn'); 
     timerToggleBtn = el('timer-toggle-btn');
     timerToggleIcon = el('timer-toggle-icon');
     timerToggleText = el('timer-toggle-text');
@@ -1230,14 +1226,13 @@ document.addEventListener('DOMContentLoaded', () => {
     notificationPreviewEl = el('notification-preview');
     notificationPreviewMessageEl = el('notification-preview-message');
     sendNotificationBtn = el('send-notification-btn');
-    previewTeamNameEl = q('#notification-preview .team-header .name span'); // Corrected selector for preview
-    previewChangeLabelEl = q('#notification-preview .change-header span'); // Corrected selector for preview
+    previewTeamNameEl = q('#notification-preview .team-header .name span'); 
+    previewChangeLabelEl = q('#notification-preview .change-header span'); 
     previewPlayerOutEl = q('#notification-preview .player.out');
     previewPlayerInEl = q('#notification-preview .player.in');
 
-
-    scoreHomeDisplay = el('home-score'); // Score Tab Score Display
-    scoreAwayDisplay = el('away-score'); // Score Tab Score Display
+    scoreHomeDisplay = el('home-score'); 
+    scoreAwayDisplay = el('away-score'); 
     scoreHomeNameDisplay = el('score-home-team-name-display');
     scoreAwayNameDisplay = el('score-away-team-name-display');
 
@@ -1291,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     quickSendBtn = el('quick-send-btn');
 
     repeatActivityModal = el('repeat-activity-modal');
-    closeRepeatActivityModalBtn = el('close-repeat-activity-modal-btn'); // Corrected ID
+    closeRepeatActivityModalBtn = el('close-repeat-activity-modal-btn'); 
     repeatActivityInfoEl = el('repeat-activity-info');
     repeatActivityBtn = el('repeat-activity-btn');
     repeatActivityNewBtn = el('repeat-activity-new-btn');
@@ -1301,29 +1296,26 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCurrentTime();
     setInterval(updateCurrentTime, 1000);
     
-    connectToOBS(); // Initial connection attempt
+    fetchOBSBackendState(); 
+    setInterval(fetchOBSBackendState, 5000); 
 
     setupTimerControls();
     setupScoreControls();
-    loadPlayers(); // Load player data for notifications and quick actions
+    loadPlayers(); 
     setupNotificationControls();
     setupSceneControls();
     
-    // Settings Tab
     loadScorebugSettings();
     setupScorebugSettingsControls();
     loadIntroSettings();
     setupIntroSettingsControls();
-    setupStreamSettingsControls(); // Includes populating mic list
+    setupStreamSettingsControls(); 
 
-    // Modals & Quick Actions
     setupQuickActions();
     setupQuickNotificationModalActions();
     setupRepeatActivityModalActions();
     setupOBSControls();
 
-
-    // Load recent activities from localStorage
     const storedActivities = localStorage.getItem('streamPanelRecentActivities');
     if (storedActivities) {
         try {
@@ -1332,18 +1324,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     renderRecentActivitiesUI();
 
-    // Initial fetch for timer state from server (after OBS connection attempt)
-    fetch('/timer-state')
-        .then(res => res.ok ? res.json() : Promise.reject(new Error(res.statusText)))
-        .then(data => {
-            isTimerRunning = data.running; // Ustawienie isTimerRunning na podstawie odpowiedzi serwera
-            updateTimerToggleButtonUI(isTimerRunning);
-            updateTimerDisplayUI(data.minute, data.second);
-        })
-        .catch(err => console.error("Error fetching initial timer state:", err));
+    // Initial fetch for timer state from server
+    fetchAndUpdateTimerState(); // Wywołaj raz na starcie
+    setInterval(fetchAndUpdateTimerState, 1000); // I potem cyklicznie
     
-    // Initial fetch for scorebug data to populate score display
-    fetch('/initial-settings') // This endpoint returns scorebug data
+    fetch('/initial-settings') 
         .then(res => res.ok ? res.json() : Promise.reject(new Error(res.statusText)))
         .then(data => {
             homeScore = data.homeScore || 0;
@@ -1354,5 +1339,4 @@ document.addEventListener('DOMContentLoaded', () => {
             if(scoreAwayNameDisplay) scoreAwayNameDisplay.textContent = data.awayName || 'Goście';
         })
         .catch(err => console.error("Error fetching initial score for display:", err));
-
 });

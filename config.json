@@ -2,11 +2,24 @@
     "port": 3000,
     "teams": {
         "home": "json/agricola_players.json",
-        "away": "json/away_players.json"
+        "away": "json/away_players.json",
+        "defaultHomeName": "AGRICOLA",
+        "defaultAwayName": "PRZECIWNIK"
     },
     "obs": {
         "host": "10.21.96.130",
-        "port": 4445,
-        "password": ""
+        "port": 4455,
+        "password": "",
+        "defaultMicName": "Mikrofon"
+    },
+    "colors": {
+        "home": "#C8102E",
+        "away": "#1B449C",
+        "teamBackground": "#34003a",
+        "goalsBackground": "#00fc8a",
+        "timeBackground": "#ffffff",
+        "teamText": "#ffffff",
+        "goalsText": "#34003a",
+        "timeText": "#34003a"
     }
 }

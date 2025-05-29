@@ -1,16 +1,29 @@
 const express = require('express');
-const fs = require('fs').promises; // Używamy fs.promises
-const fsSync = require('fs'); // Pozostajemy przy fsSync tam, gdzie jest to konieczne (np. inicjalizacja configu)
+const fs = require('fs').promises;
+const fsSync = require('fs');
 const OBSWebSocket = require('obs-websocket-js').default;
-const multer = require('multer'); // Dodano multer
+const multer = require('multer');
 const path = require('path');
 const os = require('os');
 const chalk = require('chalk');
 const { exec } = require('child_process');
 
 const app = express();
-const config = require('./config.json'); // Wczytaj oryginalny config, initializeConfig go zaktualizuje
-const port = config.port;
+let config = {}; // Zainicjalizuj pustym obiektem, zostanie załadowany później
+
+try {
+    const configPath = path.join(__dirname, 'config.json');
+    let configRaw = fsSync.readFileSync(configPath, 'utf8');
+    if (configRaw.charCodeAt(0) === 0xFEFF) { // Usuń BOM
+      configRaw = configRaw.slice(1);
+    }
+    config = JSON.parse(configRaw);
+} catch (err) {
+    console.error(chalk.bgRed.white(' FATAL ERROR ') + ' Nie można wczytać pliku config.json:', err);
+    process.exit(1); // Zatrzymaj aplikację, jeśli config jest niezbędny
+}
+
+const port = config.port || 3000; // Użyj portu z configu lub domyślnego
 
 // Cache dla danych zawodników
 let playersCache = null;
@@ -30,32 +43,29 @@ function getLocalIp() {
   return '127.0.0.1';
 }
 
-// Inicjalizacja konfiguracji - wykonana tylko raz przy starcie
+// Inicjalizacja konfiguracji (aktualizacja hosta OBS)
 function initializeConfig() {
   const configPath = path.join(__dirname, 'config.json');
   try {
-    let configRaw = fsSync.readFileSync(configPath, 'utf8');
-    if (configRaw.charCodeAt(0) === 0xFEFF) {
-      configRaw = configRaw.slice(1);
-    }
-    const configData = JSON.parse(configRaw);
     const localIp = getLocalIp();
-    
-    if (configData.obs && configData.obs.host !== localIp) {
-      configData.obs.host = localIp;
-      fsSync.writeFileSync(configPath, JSON.stringify(configData, null, 4), 'utf8');
-      console.log(`Zaktualizowano obs.host w config.json na ${localIp}`);
+    // Upewnij się, że config.obs istnieje przed próbą dostępu do config.obs.host
+    if (config.obs && config.obs.host !== localIp) {
+      const updatedConfig = { ...config, obs: { ...config.obs, host: localIp } };
+      fsSync.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 4), 'utf8');
+      log.system(`Zaktualizowano obs.host w config.json na ${localIp}`);
+      return updatedConfig; // Zwróć zaktualizowany config
     }
-    return configData;
+    return config; // Zwróć oryginalny config, jeśli nie było zmian
   } catch (err) {
-    console.error('Błąd aktualizacji config.json:', err);
-    return config;
+    // log nie jest jeszcze zdefiniowany tutaj, więc użyj console.error
+    console.error(chalk.bgRed.white(' ERROR ') + ' Błąd aktualizacji config.json: ' + err.message);
+    return config; 
   }
 }
 
-const finalConfig = initializeConfig(); // Wywołaj initializeConfig tutaj
+const finalConfig = initializeConfig(); // Użyj finalConfig w reszcie kodu
 
-// Konfiguracja kolorów dla różnych typów logów
+// Logowanie
 const log = {
   system: (message) => console.log(chalk.bgBlue.white(' SYSTEM ') + ' ' + message),
   obs: (message) => console.log(chalk.bgMagenta.white(' OBS ') + ' ' + message),
@@ -64,7 +74,7 @@ const log = {
   success: (message) => console.log(chalk.bgGreen.black(' SUCCESS ') + ' ' + message),
   info: (message) => console.log(chalk.bgCyan.black(' INFO ') + ' ' + message),
   stream: (message) => console.log(chalk.bgGreen.white(' STREAM ') + ' ' + message),
-  file: (message) => console.log(chalk.bgWhite.black(' FILE ') + ' ' + message) // Dodano dla operacji na plikach
+  file: (message) => console.log(chalk.bgWhite.black(' FILE ') + ' ' + message)
 };
 
 const obs = new OBSWebSocket();
@@ -73,7 +83,7 @@ const obs = new OBSWebSocket();
 app.use(express.static('public'));
 app.use(express.json({ limit: '1mb' }));
 
-// --- Konfiguracja Multer dla uploadu logotypów ---
+// Multer
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         const uploadPath = path.join(__dirname, 'public', 'images');
@@ -83,12 +93,9 @@ const storage = multer.diskStorage({
         cb(null, uploadPath);
     },
     filename: function (req, file, cb) {
-        // file.originalname pochodzi z trzeciego argumentu formData.append() z frontendu
-        // np. 'home_logo.png' lub 'opponent_logo.png'
         cb(null, file.originalname); 
     }
 });
-
 const fileFilter = (req, file, cb) => {
     if (file.mimetype === 'image/png' || file.mimetype === 'image/jpeg' || file.mimetype === 'image/svg+xml') {
         cb(null, true);
@@ -96,56 +103,53 @@ const fileFilter = (req, file, cb) => {
         cb(new Error('Nieprawidłowy typ pliku! Tylko PNG, JPG, SVG są dozwolone.'), false);
     }
 };
+const upload = multer({ storage: storage, limits: { fileSize: 1024 * 1024 * 2 }, fileFilter: fileFilter });
 
-const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 1024 * 1024 * 2 // 2MB limit na plik
-    },
-    fileFilter: fileFilter
-});
+// Bezpieczne odczytywanie wartości z konfiguracji
+const safeGetConfig = (path, defaultValue) => {
+    const keys = path.split('.');
+    let current = finalConfig;
+    for (const key of keys) {
+        if (current && typeof current === 'object' && key in current) {
+            current = current[key];
+        } else {
+            return defaultValue;
+        }
+    }
+    return current;
+};
 
 
-// Centralne przechowywanie stanu aplikacji
+// Stan aplikacji
 const appState = {
   scorebug: {
-    homeName: 'AGR',
-    awayName: 'LSN',
-    homeScore: 0,
-    awayScore: 0,
-    minute: '00',
-    second: '00',
-    homeColor: '#C8102E',
-    awayColor: '#1B449C',
-    teamBackground: '#34003a',
-    goalsBackground: '#00fc8a',
-    timeBackground: '#ffffff',
-    teamTextColor: '#ffffff',
-    goalsTextColor: '#34003a',
-    timeTextColor: '#34003a'
+    homeName: safeGetConfig('teams.defaultHomeName', 'AGR'), 
+    awayName: safeGetConfig('teams.defaultAwayName', 'LSN'), 
+    homeScore: 0, awayScore: 0,
+    minute: '00', second: '00',
+    homeColor: safeGetConfig('colors.home', '#C8102E'), 
+    awayColor: safeGetConfig('colors.away', '#1B449C'), 
+    teamBackground: safeGetConfig('colors.teamBackground', '#34003a'),
+    goalsBackground: safeGetConfig('colors.goalsBackground', '#00fc8a'), 
+    timeBackground: safeGetConfig('colors.timeBackground', '#ffffff'),
+    teamTextColor: safeGetConfig('colors.teamText', '#ffffff'), 
+    goalsTextColor: safeGetConfig('colors.goalsText', '#34003a'), 
+    timeTextColor: safeGetConfig('colors.timeText', '#34003a')
   },
-  timer: {
-    running: false,
-    seconds: 0,
-    interval: null
-  },
+  timer: { running: false, seconds: 0, interval: null },
   notification: null,
-  mic: {
-    muted: true
+  obs: { 
+    connected: false, 
+    reconnecting: false, 
+    streamActive: false,
+    micMuted: true, 
+    selectedMicName: safeGetConfig('obs.defaultMicName', 'Mikrofon')
   },
-  obs: {
-    connected: false,
-    reconnecting: false
-  },
-  // NOWY STAN: Ustawienia Intro
   introSettings: {
     introHomeTeamFullName: 'Domyślni Gospodarze Pełna Nazwa',
     introAwayTeamFullName: 'Domyślni Goście Pełna Nazwa',
-    introMatchDate: '',
-    introMatchTime: '',
-    introMatchLocation: 'Domyślne Miejsce',
-    homeLogoPath: '/images/agricola_logo.png', // Domyślna ścieżka, jeśli plik istnieje
-    awayLogoPath: '/images/opponent_logo.png'  // Domyślna ścieżka, jeśli plik istnieje
+    introMatchDate: '', introMatchTime: '', introMatchLocation: 'Domyślne Miejsce',
+    homeLogoPath: '/images/agricola_logo.png', awayLogoPath: '/images/opponent_logo.png'
   }
 };
 
@@ -164,8 +168,9 @@ async function loadIntroSettingsFromFile() {
     try {
         if (fsSync.existsSync(INTRO_SETTINGS_FILE_PATH)) {
             const data = await fs.readFile(INTRO_SETTINGS_FILE_PATH, 'utf8');
-            appState.introSettings = JSON.parse(data);
-            // Upewnij się, że domyślne ścieżki są ustawione, jeśli brakuje ich w pliku i pliki istnieją
+            const loadedSettings = JSON.parse(data);
+            appState.introSettings = { ...appState.introSettings, ...loadedSettings };
+
             const defaultHomeLogo = '/images/agricola_logo.png';
             const defaultOpponentLogo = '/images/opponent_logo.png';
 
@@ -173,8 +178,7 @@ async function loadIntroSettingsFromFile() {
                  if(fsSync.existsSync(path.join(__dirname, 'public', defaultHomeLogo))) {
                     appState.introSettings.homeLogoPath = defaultHomeLogo;
                  } else {
-                    // Jeśli nawet domyślne agricola_logo.png nie istnieje, zostaw puste lub ustaw placeholder
-                    appState.introSettings.homeLogoPath = ''; // lub '/images/placeholder_logo.png'
+                    appState.introSettings.homeLogoPath = ''; 
                  }
             }
             if (!appState.introSettings.awayLogoPath || !fsSync.existsSync(path.join(__dirname, 'public', appState.introSettings.awayLogoPath))) {
@@ -187,13 +191,20 @@ async function loadIntroSettingsFromFile() {
             log.file('Ustawienia Intro załadowane z pliku.');
         } else {
             log.file('Plik intro_settings.json nie istnieje, używam domyślnych wartości i tworzę plik.');
-            // Sprawdź czy domyślne loga istnieją przed ustawieniem ścieżek
             if (!fsSync.existsSync(path.join(__dirname, 'public', appState.introSettings.homeLogoPath))) appState.introSettings.homeLogoPath = '';
             if (!fsSync.existsSync(path.join(__dirname, 'public', appState.introSettings.awayLogoPath))) appState.introSettings.awayLogoPath = '';
-            await saveIntroSettingsToFile(); // Zapisz domyślne, aby utworzyć plik
+            await saveIntroSettingsToFile(); 
         }
     } catch (err) {
-        log.error("Błąd odczytu ustawień intro z pliku: " + err.message);
+        log.error("Błąd odczytu/parsowania ustawień intro z pliku: " + err.message + ". Używam domyślnych.");
+        appState.introSettings = {
+            introHomeTeamFullName: 'Domyślni Gospodarze Pełna Nazwa',
+            introAwayTeamFullName: 'Domyślni Goście Pełna Nazwa',
+            introMatchDate: '', introMatchTime: '', introMatchLocation: 'Domyślne Miejsce',
+            homeLogoPath: fsSync.existsSync(path.join(__dirname, 'public', '/images/agricola_logo.png')) ? '/images/agricola_logo.png' : '',
+            awayLogoPath: fsSync.existsSync(path.join(__dirname, 'public', '/images/opponent_logo.png')) ? '/images/opponent_logo.png' : ''
+        };
+        await saveIntroSettingsToFile(); 
     }
 }
 
@@ -201,9 +212,9 @@ async function loadIntroSettingsFromFile() {
 console.clear();
 log.system('Inicjalizacja serwera...');
 
-// Funkcje pomocnicze
-function pad(number) {
-  return number.toString().padStart(2, '0');
+function pad(number) { 
+    if (number === null || typeof number === 'undefined') return '00'; // Zabezpieczenie
+    return number.toString().padStart(2, '0'); 
 }
 
 function updateTimerDisplay() {
@@ -213,7 +224,6 @@ function updateTimerDisplay() {
   appState.scorebug.second = pad(secs);
 }
 
-// Funkcje zarządzania timerem
 function startServerTimer() {
   if (!appState.timer.running) {
     appState.timer.running = true;
@@ -222,11 +232,8 @@ function startServerTimer() {
       updateTimerDisplay();
     }, 1000);
     log.timer('Timer uruchomiony');
-  } else {
-    log.timer('Timer już działa');
   }
 }
-
 function stopServerTimer() {
   if (appState.timer.running) {
     appState.timer.running = false;
@@ -237,141 +244,111 @@ function stopServerTimer() {
     log.timer('Timer zatrzymany');
   }
 }
-
 function resetServerTimer() {
   stopServerTimer();
   appState.timer.seconds = 0;
-  appState.scorebug.minute = '00';
-  appState.scorebug.second = '00';
+  updateTimerDisplay(); 
   log.timer('Timer zresetowany');
 }
 
-// Funkcje do zarządzania procesami
-function killProcesses(callback) {
-  exec('taskkill /IM obs64.exe /F && taskkill /IM node.exe /F', (error, stdout, stderr) => {
-    if (error) log.error(`Błąd zamykania procesów: ${error.message}`);
-    else log.system('Zamknięto OBS i Node.js');
-    if (typeof callback === 'function') callback(error);
-  });
-}
-
-function startSystem() {
-  const scriptPath = path.join(__dirname, 'start_system.bat');
-  exec(`start "" "${scriptPath}"`, (error) => {
-    if (error) log.error(`Błąd uruchamiania systemu: ${error.message}`);
-    else log.system('Uruchomiono system ponownie');
-  });
-}
-
 async function connectToOBS() {
-  if (appState.obs.reconnecting) return;
-  const maxRetries = 5;
-  let retries = 0;
-  let backoffDelay = 5000;
-
-  const tryConnect = async () => {
-    if (appState.obs.reconnecting) return;
-    appState.obs.reconnecting = true;
+  if (appState.obs.reconnecting || obs.socket) return;
+  appState.obs.reconnecting = true;
+  log.info(`Próba połączenia z OBS: ws://${finalConfig.obs.host}:${finalConfig.obs.port}`);
+  try {
+    await obs.connect(`ws://${finalConfig.obs.host}:${finalConfig.obs.port}`, finalConfig.obs.password);
+    appState.obs.connected = true;
+    appState.obs.reconnecting = false;
+    log.success(`Połączono z OBS WebSocket na ${finalConfig.obs.host}:${finalConfig.obs.port}`);
+    
     try {
-      await obs.connect(`ws://${finalConfig.obs.host}:${finalConfig.obs.port}`, finalConfig.obs.password);
-      appState.obs.connected = true;
-      appState.obs.reconnecting = false;
-      log.success(`Połączono z OBS WebSocket na ${finalConfig.obs.host}:${finalConfig.obs.port}`);
-      obs.on('StreamStateChanged', (data) => log.stream(data.outputActive ? 'Stream rozpoczęty' : 'Stream zakończony'));
-      obs.on('ConnectionClosed', () => {
-        appState.obs.connected = false;
-        log.error('Połączenie z OBS zostało zamknięte. Próba ponownego połączenia...');
-        setTimeout(() => { appState.obs.reconnecting = false; tryConnect(); }, backoffDelay);
-      });
-      try {
-        const micStatus = await obs.call('GetInputMute', { inputName: 'Mikrofon' });
-        appState.mic.muted = micStatus.inputMuted; // Poprawka: powinno być inputMuted
-      } catch (error) {
-        log.error(`Błąd sprawdzania stanu mikrofonu: ${error.message}`);
-      }
-      retries = 0;
-      backoffDelay = 5000;
-    } catch (error) {
+        const streamStatus = await obs.call('GetStreamStatus');
+        appState.obs.streamActive = streamStatus.outputActive;
+    } catch (e) { log.error(`Błąd pobierania statusu streamu: ${e.message}`); }
+    
+    try {
+        const micName = appState.obs.selectedMicName;
+        if (micName) { 
+            const micStatus = await obs.call('GetInputMute', { inputName: micName });
+            appState.obs.micMuted = micStatus.inputMuted;
+        } else {
+            log.warn('Nie zdefiniowano nazwy mikrofonu (appState.obs.selectedMicName) do sprawdzenia stanu.');
+        }
+    } catch (e) { log.error(`Błąd pobierania stanu mikrofonu (${appState.obs.selectedMicName}): ${e.message}. Upewnij się, że źródło o tej nazwie istnieje w OBS.`); }
+
+    obs.on('StreamStateChanged', (data) => {
+        log.stream(data.outputActive ? 'Stream rozpoczęty (event)' : 'Stream zakończony (event)');
+        appState.obs.streamActive = data.outputActive;
+    });
+    obs.on('InputMuteStateChanged', (data) => {
+        if (data.inputName === appState.obs.selectedMicName) {
+            appState.obs.micMuted = data.inputMuted;
+            log.obs(`Stan mikrofonu ${data.inputName} zmieniony na: ${data.inputMuted ? 'wyciszony' : 'aktywny'}`);
+        }
+    });
+    obs.on('ConnectionClosed', () => {
       appState.obs.connected = false;
-      log.error(`Błąd połączenia z OBS: ${error.message}`);
-      retries++;
-      if (retries < maxRetries) {
-        backoffDelay = Math.min(30000, backoffDelay * 1.5);
-        log.info(`Ponowna próba połączenia z OBS (${retries}/${maxRetries}) za ${backoffDelay/1000} sekund...`);
-        setTimeout(() => { appState.obs.reconnecting = false; tryConnect(); }, backoffDelay);
-      } else {
-        log.error('Nie udało się połączyć z OBS po maksymalnej liczbie prób. Kolejna próba za 60 sekund.');
-        retries = 0;
-        setTimeout(() => { appState.obs.reconnecting = false; tryConnect(); }, 60000);
-      }
-    }
-  };
-  tryConnect();
+      appState.obs.streamActive = false; 
+      appState.obs.micMuted = true; 
+      log.error('Połączenie z OBS zostało zamknięte. Próba ponownego połączenia za 5s...');
+      setTimeout(() => { appState.obs.reconnecting = false; connectToOBS(); }, 5000);
+    });
+  } catch (error) {
+    appState.obs.connected = false;
+    appState.obs.reconnecting = false;
+    log.error(`Błąd połączenia z OBS: ${error.message}. Ponowna próba za 10s...`);
+    setTimeout(connectToOBS, 10000);
+  }
 }
 
 function requireOBSConnection(req, res, next) {
   if (!appState.obs.connected) {
-    return res.status(503).json({ error: 'Brak połączenia z OBS', message: 'OBS WebSocket nie jest połączony' });
+    return res.status(503).json({ 
+        error: 'Brak połączenia z OBS', 
+        message: 'Serwer panelu nie jest połączony z OBS WebSocket.',
+        obsConnected: false 
+    });
   }
   next();
 }
 
 // API Endpoints
-app.post('/api/restart', (req, res) => {
-  log.system('Rozpoczęto restart systemu...');
-  killProcesses((error) => {
-    if (!error) startSystem();
-    res.json({ status: error ? 'error' : 'success', message: error ? 'Błąd podczas restartu' : 'System restartowany' });
-  });
-});
-
-app.post('/api/shutdown', (req, res) => {
-  log.system('Rozpoczęto wyłączanie systemu...');
-  killProcesses((error) => {
-    res.json({ status: error ? 'error' : 'success', message: error ? 'Błąd podczas wyłączania' : 'System wyłączony' });
-    if (!error) setTimeout(() => process.exit(0), 1000);
-  });
-});
-
 app.get('/scorebug-data', (req, res) => res.json(appState.scorebug));
 app.get('/notification-data', (req, res) => res.json(appState.notification || {}));
-app.get('/initial-settings', (req, res) => res.json(appState.scorebug));
-
+app.get('/initial-settings', (req, res) => res.json(appState.scorebug)); 
 app.get('/players-data', async (req, res) => {
-  try {
-    const now = Date.now();
-    if (playersCache && (now - playersCacheTime) < CACHE_DURATION) {
-      log.info('Zwrócono dane zawodników z cache');
-      return res.json(playersCache);
-    }
-    log.info(`Ładowanie pliku zawodników gospodarzy: ${finalConfig.teams.home}`);
-    const homePlayers = await fs.readFile(path.join(__dirname, 'public', finalConfig.teams.home), 'utf8');
-    log.info(`Ładowanie pliku zawodników gości: ${finalConfig.teams.away}`);
-    const awayPlayers = await fs.readFile(path.join(__dirname, 'public', finalConfig.teams.away), 'utf8');
-    const homePlayersJson = JSON.parse(homePlayers);
-    const awayPlayersJson = JSON.parse(awayPlayers);
-    playersCache = { home: homePlayersJson, away: awayPlayersJson };
-    playersCacheTime = now;
-    log.success(`Załadowano ${homePlayersJson.length} zawodników gospodarzy i ${awayPlayersJson.length} zawodników gości`);
-    res.json(playersCache);
-  } catch (error) {
-    log.error(`Błąd ładowania danych zawodników: ${error.message}`);
-    res.status(500).json({ error: 'Błąd ładowania danych zawodników' });
-  }
-});
+    try {
+        const now = Date.now();
+        if (playersCache && (now - playersCacheTime) < CACHE_DURATION) {
+          log.info('Zwrócono dane zawodników z cache');
+          return res.json(playersCache);
+        }
+        
+        const homePlayersPath = safeGetConfig('teams.home', 'json/default_home_players.json');
+        const awayPlayersPath = safeGetConfig('teams.away', 'json/default_away_players.json');
 
-// --- NOWE ENDPOINTY DLA USTAWIEŃ INTRO ---
-app.get('/initial-intro-settings', async (req, res) => {
-    // Nie ma potrzeby await, bo loadIntroSettingsFromFile modyfikuje appState.introSettings synchronicznie
-    // lub jeśli plik nie istnieje, używa wartości domyślnych z appState.
-    // loadIntroSettingsFromFile jest wywoływane przy starcie serwera.
-    res.json(appState.introSettings);
-});
+        log.info(`Ładowanie pliku zawodników gospodarzy: ${homePlayersPath}`);
+        const homePlayersRaw = await fs.readFile(path.join(__dirname, 'public', homePlayersPath), 'utf8')
+            .catch(err => { log.error(`Nie można wczytać ${homePlayersPath}: ${err.message}`); return '[]'; });
+        log.info(`Ładowanie pliku zawodników gości: ${awayPlayersPath}`);
+        const awayPlayersRaw = await fs.readFile(path.join(__dirname, 'public', awayPlayersPath), 'utf8')
+            .catch(err => { log.error(`Nie można wczytać ${awayPlayersPath}: ${err.message}`); return '[]'; });
+        
+        const homePlayersJson = JSON.parse(homePlayersRaw.charCodeAt(0) === 0xFEFF ? homePlayersRaw.slice(1) : homePlayersRaw);
+        const awayPlayersJson = JSON.parse(awayPlayersRaw.charCodeAt(0) === 0xFEFF ? awayPlayersRaw.slice(1) : awayPlayersRaw);
 
+        playersCache = { home: homePlayersJson, away: awayPlayersJson };
+        playersCacheTime = now;
+        log.success(`Załadowano ${homePlayersJson.length} zawodników gospodarzy i ${awayPlayersJson.length} zawodników gości`);
+        res.json(playersCache);
+      } catch (error) {
+        log.error(`Błąd ładowania danych zawodników: ${error.message}`);
+        res.status(500).json({ error: 'Błąd ładowania danych zawodników', details: error.message });
+      }
+});
+app.get('/initial-intro-settings', async (req, res) => res.json(appState.introSettings) );
 app.post('/update-intro-settings', upload.fields([{ name: 'homeLogo', maxCount: 1 }, { name: 'awayLogo', maxCount: 1 }]), async (req, res) => {
     log.info('Otrzymano żądanie /update-intro-settings');
-    // log.info('Body: ' + JSON.stringify(req.body));
-    // log.info('Files: ' + JSON.stringify(req.files));
     try {
         appState.introSettings.introHomeTeamFullName = req.body.introHomeTeamFullName || appState.introSettings.introHomeTeamFullName;
         appState.introSettings.introAwayTeamFullName = req.body.introAwayTeamFullName || appState.introSettings.introAwayTeamFullName;
@@ -398,70 +375,136 @@ app.post('/update-intro-settings', upload.fields([{ name: 'homeLogo', maxCount: 
     }
 });
 
+// --- ENDPOINT: /obs-status ---
+app.get('/obs-status', async (req, res) => {
+    let currentMicMuted = appState.obs.micMuted;
+    let currentStreamActive = appState.obs.streamActive;
+    let obsStatusText = appState.obs.connected ? 'Połączono z OBS' : 'Brak połączenia z OBS';
+    let currentSelectedMic = appState.obs.selectedMicName;
 
-// OBS endpoints
-app.get('/stream-status', requireOBSConnection, async (req, res) => {
-  try {
-    const streamStatus = await obs.call('GetStreamStatus');
-    res.json({ streaming: streamStatus.outputActive });
-  } catch (error) {
-    log.error(`Błąd pobierania statusu streamu: ${error.message}`);
-    res.status(500).json({ error: 'Błąd pobierania statusu streamu' });
-  }
+    if (appState.obs.connected) {
+        try {
+            const streamStatus = await obs.call('GetStreamStatus');
+            currentStreamActive = streamStatus.outputActive;
+            appState.obs.streamActive = currentStreamActive; 
+        } catch (e) {
+            log.error(`Nie udało się pobrać aktualnego statusu streamu: ${e.message}`);
+        }
+        try {
+            if (currentSelectedMic) { 
+                const micStatus = await obs.call('GetInputMute', { inputName: currentSelectedMic });
+                currentMicMuted = micStatus.inputMuted;
+                appState.obs.micMuted = currentMicMuted; 
+            } else {
+                log.warn('Próba odczytu stanu mikrofonu, ale appState.obs.selectedMicName nie jest ustawione.');
+                currentMicMuted = true; 
+            }
+        } catch (e) {
+            log.error(`Nie udało się pobrać stanu mikrofonu ${currentSelectedMic}: ${e.message}`);
+            obsStatusText = `Błąd odczytu mikrofonu: ${currentSelectedMic}. Sprawdź czy istnieje w OBS.`;
+        }
+    } else {
+        currentStreamActive = false; 
+        currentMicMuted = true; 
+    }
+
+    res.json({
+        obsConnected: appState.obs.connected,
+        streamActive: currentStreamActive,
+        micMuted: currentMicMuted,
+        selectedMicName: currentSelectedMic,
+        obsStatusText: obsStatusText
+    });
 });
 
+// --- ENDPOINT: /obs-audio-inputs ---
+app.get('/obs-audio-inputs', requireOBSConnection, async (req, res) => {
+    try {
+        const kindsToTry = ['wasapi_input_capture', 'coreaudio_input_capture', 'pulse_input_capture', 'pipewire-input'];
+        let allAudioInputs = [];
+        for (const kind of kindsToTry) {
+            try {
+                const { inputs } = await obs.call('GetInputList', { inputKind: kind });
+                if (inputs && inputs.length > 0) {
+                    allAudioInputs.push(...inputs.filter(input => input.inputName));
+                }
+            } catch (kindError) { /* log.info(`Nie znaleziono wejść audio typu ${kind}`); */ }
+        }
+        const uniqueInputs = Array.from(new Set(allAudioInputs.map(a => a.inputName)))
+            .map(name => ({ inputName: name })); 
+
+        res.json({ inputs: uniqueInputs });
+    } catch (error) {
+        log.error(`Błąd pobierania listy wejść audio z OBS: ${error.message}`);
+        res.status(500).json({ error: 'Błąd pobierania listy wejść audio z OBS', details: error.message });
+    }
+});
+
+
+// --- ENDPOINT: /toggle-mic ---
 app.post('/toggle-mic', requireOBSConnection, async (req, res) => {
   try {
-    const { mute } = req.body;
-    if (typeof mute !== 'boolean') return res.status(400).json({ error: 'Parametr mute musi być boolean' });
-    await obs.call('SetInputMute', { inputName: 'Mikrofon', inputMuted: mute });
-    appState.mic.muted = mute;
-    log.info(`Mikrofon ${appState.mic.muted ? 'wyciszony' : 'aktywny'}`);
-    res.json({ muted: appState.mic.muted });
+    const { inputName, mute } = req.body; 
+    if (typeof mute !== 'boolean') {
+      return res.status(400).json({ error: 'Parametr "mute" musi być wartością boolean.' });
+    }
+    
+    const targetMicName = inputName || appState.obs.selectedMicName; 
+    if (!targetMicName) {
+        return res.status(400).json({ error: 'Nie określono nazwy mikrofonu (inputName).' });
+    }
+
+    log.info(`Przełączanie mikrofonu: ${targetMicName} na ${mute ? 'wyciszony' : 'aktywny'}`);
+    await obs.call('SetInputMute', { inputName: targetMicName, inputMuted: mute });
+    
+    appState.obs.selectedMicName = targetMicName; 
+    appState.obs.micMuted = mute; 
+
+    res.json({ muted: appState.obs.micMuted, selectedMicName: appState.obs.selectedMicName });
   } catch (error) {
-    log.error(`Błąd przełączania mikrofonu: ${error.message}`);
-    res.status(500).json({ error: 'Błąd przełączania mikrofonu' });
+    log.error(`Błąd przełączania mikrofonu (${req.body.inputName || appState.obs.selectedMicName}): ${error.message}`);
+    res.status(500).json({ error: 'Błąd przełączania mikrofonu', details: error.message });
   }
 });
 
 app.post('/start-stream', requireOBSConnection, async (req, res) => {
-  try {
-    await obs.call('StartStream');
-    log.stream('Stream uruchomiony');
-    res.json({ status: 'success', message: 'Stream uruchomiony' });
-  } catch (error) {
-    log.error(`Błąd uruchamiania streamu: ${error.message}`);
-    res.status(500).json({ error: 'Błąd uruchamiania streamu' });
-  }
+    try {
+        await obs.call('StartStream');
+        appState.obs.streamActive = true; 
+        log.stream('Stream uruchomiony przez API');
+        res.json({ status: 'success', message: 'Stream uruchomiony', streamActive: true });
+    } catch (error) {
+        log.error(`Błąd uruchamiania streamu: ${error.message}`);
+        res.status(500).json({ error: 'Błąd uruchamiania streamu', details: error.message });
+    }
 });
-
 app.post('/stop-stream', requireOBSConnection, async (req, res) => {
-  try {
-    await obs.call('StopStream');
-    log.stream('Stream zatrzymany');
-    res.json({ status: 'success', message: 'Stream zatrzymany' });
-  } catch (error) {
-    log.error(`Błąd zatrzymywania streamu: ${error.message}`);
-    res.status(500).json({ error: 'Błąd zatrzymywania streamu' });
-  }
+    try {
+        await obs.call('StopStream');
+        appState.obs.streamActive = false; 
+        log.stream('Stream zatrzymany przez API');
+        res.json({ status: 'success', message: 'Stream zatrzymany', streamActive: false });
+    } catch (error) {
+        log.error(`Błąd zatrzymywania streamu: ${error.message}`);
+        res.status(500).json({ error: 'Błąd zatrzymywania streamu', details: error.message });
+    }
 });
-
-app.post('/switch-scene', requireOBSConnection, async (req, res) => {
-  try {
+app.post('/switch-scene', requireOBSConnection, async (req, res) => { 
     const { sceneName } = req.body;
-    if (!sceneName || typeof sceneName !== 'string') return res.status(400).json({ error: 'Nazwa sceny jest wymagana' });
-    await obs.call('SetCurrentProgramScene', { sceneName });
-    log.obs(`Przełączono na scenę: ${sceneName}`);
-    res.json({ status: 'success', message: `Przełączono na scenę: ${sceneName}` });
-  } catch (error) {
-    log.error(`Błąd przełączania sceny: ${error.message}`);
-    res.status(500).json({ error: 'Błąd przełączania sceny' });
-  }
+    if (!sceneName) {
+        return res.status(400).json({ error: 'Nazwa sceny jest wymagana.' });
+    }
+    try {
+        await obs.call('SetCurrentProgramScene', { sceneName });
+        log.obs(`Przełączono na scenę: ${sceneName}`);
+        res.json({ status: 'success', message: `Przełączono na scenę: ${sceneName}` });
+    } catch (error) {
+        log.error(`Błąd przełączania sceny na "${sceneName}": ${error.message}`);
+        res.status(500).json({ error: `Błąd przełączania sceny na "${sceneName}"`, details: error.message });
+    }
 });
 
-// Timer endpoints
-app.get('/timer-state', (req, res) => res.json({ running: appState.timer.running, seconds: appState.timer.seconds, minute: appState.scorebug.minute, second: appState.scorebug.second }));
-
+// --- ENDPOINT: /update-time ---
 app.post('/update-time', (req, res) => {
   const { action, minute, second } = req.body;
   log.timer(`Otrzymano prośbę zmiany czasu: ${JSON.stringify(req.body)}`);
@@ -473,119 +516,144 @@ app.post('/update-time', (req, res) => {
       case 'set45':
         stopServerTimer();
         appState.timer.seconds = 45 * 60;
-        appState.scorebug.minute = '45';
-        appState.scorebug.second = '00';
+        updateTimerDisplay(); 
         log.timer('Ustawiono timer na 45:00');
         break;
-      case 'setZero': resetServerTimer(); break;
-      default:
+      case 'setZero': resetServerTimer(); break; 
+      case 'set': 
         if (minute !== undefined && second !== undefined) {
           const min = parseInt(minute);
           const sec = parseInt(second);
-          if (isNaN(min) || isNaN(sec) || min < 0 || sec < 0 || sec >= 60) return res.status(400).json({ error: 'Nieprawidłowe wartości czasu' });
+          if (isNaN(min) || isNaN(sec) || min < 0 || sec < 0 || sec >= 60) {
+            return res.status(400).json({ error: 'Nieprawidłowe wartości czasu' });
+          }
           stopServerTimer();
-          appState.scorebug.minute = pad(min);
-          appState.scorebug.second = pad(sec);
           appState.timer.seconds = min * 60 + sec;
+          updateTimerDisplay(); 
           log.timer(`Ustawiono timer na ${appState.scorebug.minute}:${appState.scorebug.second}`);
+        } else {
+            return res.status(400).json({ error: 'Brakujące parametry minute/second dla akcji "set"' });
         }
+        break;
+      default:
+        return res.status(400).json({ error: 'Nieznana akcja timera' });
     }
-    res.json({ status: 'success', message: 'Czas zaktualizowany' });
+    res.json({ 
+        status: 'success', 
+        message: 'Czas zaktualizowany',
+        running: appState.timer.running,
+        minute: appState.scorebug.minute,
+        second: appState.scorebug.second
+    });
   } catch (error) {
     log.error(`Błąd aktualizacji czasu: ${error.message}`);
-    res.status(500).json({ error: 'Błąd aktualizacji czasu' });
+    res.status(500).json({ error: 'Błąd aktualizacji czasu', details: error.message });
   }
 });
 
-app.post('/update-scorebug', (req, res) => {
-  try {
-    const validKeys = Object.keys(appState.scorebug);
-    const updates = {};
-    for (const [key, value] of Object.entries(req.body)) {
-      if (validKeys.includes(key)) {
-        if ((key === 'homeScore' || key === 'awayScore') && (typeof value !== 'number' || value < 0)) return res.status(400).json({ error: `Nieprawidłowa wartość dla ${key}` });
-        updates[key] = value;
+// --- ENDPOINT: /timer-state ---
+app.get('/timer-state', (req, res) => {
+    res.json({
+        running: appState.timer.running,
+        minute: appState.scorebug.minute,
+        second: appState.scorebug.second,
+    });
+});
+
+
+app.post('/update-scorebug', (req, res) => { 
+    try {
+        const validKeys = Object.keys(appState.scorebug);
+        const updates = {};
+        for (const [key, value] of Object.entries(req.body)) {
+          if (validKeys.includes(key)) {
+            if ((key === 'homeScore' || key === 'awayScore') && (typeof value !== 'number' || value < 0)) {
+                log.error(`Nieprawidłowa wartość dla ${key}: ${value}`);
+                return res.status(400).json({ error: `Nieprawidłowa wartość dla ${key}` });
+            }
+            updates[key] = value;
+          }
+        }
+        if (Object.keys(updates).length === 0) {
+            log.warn('Brak prawidłowych danych do aktualizacji scorebuga.');
+            return res.status(400).json({ error: 'Brak prawidłowych danych do aktualizacji' });
+        }
+        Object.assign(appState.scorebug, updates);
+        if (updates.minute !== undefined || updates.second !== undefined) {
+          appState.timer.seconds = (parseInt(appState.scorebug.minute) || 0) * 60 + (parseInt(appState.scorebug.second) || 0);
+        }
+        log.success(`Zaktualizowano scorebug: ${JSON.stringify(updates)}`);
+        res.json({ status: 'success', message: 'Scorebug zaktualizowany', updates });
+      } catch (error) {
+        log.error(`Błąd aktualizacji scorebug: ${error.message}`);
+        res.status(500).json({ error: 'Błąd aktualizacji scorebug', details: error.message });
       }
-    }
-    if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Brak prawidłowych danych do aktualizacji' });
-    Object.assign(appState.scorebug, updates);
-    if (updates.minute !== undefined || updates.second !== undefined) {
-      appState.timer.seconds = (parseInt(appState.scorebug.minute) || 0) * 60 + (parseInt(appState.scorebug.second) || 0);
-    }
-    log.success(`Zaktualizowano scorebug: ${JSON.stringify(updates)}`);
-    res.json({ status: 'success', message: 'Scorebug zaktualizowany', updates });
-  } catch (error) {
-    log.error(`Błąd aktualizacji scorebug: ${error.message}`);
-    res.status(500).json({ error: 'Błąd aktualizacji scorebug' });
-  }
 });
-
 app.post('/update-score', (req, res) => {
-  try {
-    const updates = {};
-    if (req.body.homeScore !== undefined) {
-      const score = parseInt(req.body.homeScore);
-      if (isNaN(score) || score < 0) return res.status(400).json({ error: 'Nieprawidłowy wynik gospodarzy' });
-      appState.scorebug.homeScore = score;
-      updates.homeScore = score;
-      log.info(`Zaktualizowano wynik gospodarzy: ${score}`);
-    }
-    if (req.body.awayScore !== undefined) {
-      const score = parseInt(req.body.awayScore);
-      if (isNaN(score) || score < 0) return res.status(400).json({ error: 'Nieprawidłowy wynik gości' });
-      appState.scorebug.awayScore = score;
-      updates.awayScore = score;
-      log.info(`Zaktualizowano wynik gości: ${score}`);
-    }
-    if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Brak danych do aktualizacji' });
-    res.json({ status: 'success', message: 'Wynik zaktualizowany', updates });
-  } catch (error) {
-    log.error(`Błąd aktualizacji wyniku: ${error.message}`);
-    res.status(500).json({ error: 'Błąd aktualizacji wyniku' });
-  }
+    try {
+        const updates = {};
+        if (req.body.team && (req.body.score !== undefined)) {
+            const score = parseInt(req.body.score);
+            if (isNaN(score) || score < 0) return res.status(400).json({ error: `Nieprawidłowy wynik dla ${req.body.team}` });
+            if (req.body.team === 'home') {
+                appState.scorebug.homeScore = score;
+                updates.homeScore = score;
+                log.info(`Zaktualizowano wynik gospodarzy: ${score}`);
+            } else if (req.body.team === 'away') {
+                appState.scorebug.awayScore = score;
+                updates.awayScore = score;
+                log.info(`Zaktualizowano wynik gości: ${score}`);
+            } else {
+                return res.status(400).json({ error: 'Nieprawidłowa drużyna' });
+            }
+        } else {
+             return res.status(400).json({ error: 'Brakujące dane team lub score' });
+        }
+        
+        if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Brak danych do aktualizacji' });
+        res.json({ status: 'success', message: 'Wynik zaktualizowany', updates });
+      } catch (error) {
+        log.error(`Błąd aktualizacji wyniku: ${error.message}`);
+        res.status(500).json({ error: 'Błąd aktualizacji wyniku', details: error.message });
+      }
 });
-
-app.post('/update-notification', (req, res) => {
-  try {
-    if (!req.body.type) return res.status(400).json({ error: 'Typ powiadomienia jest wymagany' });
-    appState.notification = { ...req.body, timestamp: Date.now() };
-    log.info(`Wysłano powiadomienie typu: ${appState.notification.type} dla drużyny: ${appState.notification.team || 'brak'}`);
-    res.json({ status: 'success', message: 'Powiadomienie zaktualizowane' });
-  } catch (error) {
-    log.error(`Błąd aktualizacji powiadomienia: ${error.message}`);
-    res.status(500).json({ error: 'Błąd aktualizacji powiadomienia' });
-  }
+app.post('/update-notification', (req, res) => { 
+    try {
+        if (!req.body.type) return res.status(400).json({ error: 'Typ powiadomienia jest wymagany' });
+        appState.notification = { ...req.body, timestamp: Date.now() };
+        log.info(`Wysłano powiadomienie typu: ${appState.notification.type} dla drużyny: ${appState.notification.team || 'brak'}`);
+        res.json({ status: 'success', message: 'Powiadomienie zaktualizowane' });
+      } catch (error) {
+        log.error(`Błąd aktualizacji powiadomienia: ${error.message}`);
+        res.status(500).json({ error: 'Błąd aktualizacji powiadomienia', details: error.message });
+      }
 });
-
-app.get('/health', (req, res) => res.json({ status: 'ok', obsConnected: appState.obs.connected, timerRunning: appState.timer.running, uptime: process.uptime(), timestamp: new Date().toISOString() }));
-app.post('/api/clear-players-cache', (req, res) => {
-  playersCache = null;
-  playersCacheTime = 0;
-  log.info('Cache zawodników wyczyszczony');
-  res.json({ status: 'success', message: 'Cache wyczyszczony' });
+app.get('/health', (req, res) => { res.json({ status: 'ok', obsConnected: appState.obs.connected, timerRunning: appState.timer.running, uptime: process.uptime(), timestamp: new Date().toISOString() }) });
+app.post('/api/clear-players-cache', (req, res) => { 
+    playersCache = null;
+    playersCacheTime = 0;
+    log.info('Cache zawodników wyczyszczony');
+    res.json({ status: 'success', message: 'Cache wyczyszczony' });
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-    // Obsługa błędów Multera
+app.use((err, req, res, next) => { 
     if (err instanceof multer.MulterError) {
         log.error(`Błąd Multer: ${err.message}`);
         return res.status(400).json({ error: `Błąd uploadu pliku: ${err.message}` });
     }
-    // Inne błędy serwera
     log.error(`Błąd serwera: ${err.message} ${err.stack ? '\n' + err.stack : ''}`);
     res.status(500).json({ 
         error: 'Server error', 
         message: process.env.NODE_ENV === 'development' ? err.message : 'Wystąpił nieoczekiwany błąd'
     });
 });
+app.use('*', (req, res) => res.status(404).json({ error: 'Endpoint nie został znaleziony' }) );
 
-app.use('*', (req, res) => res.status(404).json({ error: 'Endpoint nie został znaleziony' }));
-
-async function gracefulShutdown() {
+async function gracefulShutdown() { 
     log.system('Rozpoczęto graceful shutdown...');
     if (appState.timer.interval) clearInterval(appState.timer.interval);
-    if (appState.obs.connected) {
+    if (appState.obs.connected && obs.socket) { // Sprawdź obs.socket
         try {
             await obs.disconnect();
             log.obs('Rozłączono z OBS.');
@@ -593,26 +661,26 @@ async function gracefulShutdown() {
             log.error('Błąd podczas rozłączania z OBS: ' + e.message);
         }
     }
-    // Daj trochę czasu na zakończenie operacji asynchronicznych
     setTimeout(() => {
         log.system('Serwer zakończył działanie.');
         process.exit(0);
     }, 1000);
 }
-
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
-// Inicjalizacja ustawień i start serwera
 async function startServer() {
-    await loadIntroSettingsFromFile(); // Załaduj ustawienia intro przed startem serwera
-    await connectToOBS(); // Uruchom połączenie z OBS
+    await loadIntroSettingsFromFile(); 
+    await connectToOBS(); 
 
     app.listen(port, () => {
-      const serverUrl = `http://localhost:${port}`;
+      const serverUrl = `http://10.21.96.130:${port}`;
       log.system('='.repeat(50));
-      log.system(`Panel Agricola OBS uruchomiony!`);
+      log.system(`Panel OBS uruchomiony!`);
       log.system(`Panel dostępny pod adresem: ${chalk.underline.cyan(serverUrl)}`);
+      log.system(`Lokalny adres IP serwera (dla OBS): ${chalk.yellow(getLocalIp())}`);
+      log.system(`Upewnij się, że OBS WebSocket jest skonfigurowany na: ws://${finalConfig.obs.host}:${finalConfig.obs.port}`);
+      log.system(`Domyślny mikrofon z config.json: ${chalk.blue(safeGetConfig('obs.defaultMicName', 'Mikrofon (nie zdefiniowano w config)'))}`);
       log.system(`Naciśnij ${chalk.bold.yellow('Ctrl+C')} aby zatrzymać serwer`);
       log.system('='.repeat(50));
     });

@@ -1,0 +1,23 @@
+{
+  "scorebug": {
+    "homeName": "DOM",
+    "awayName": "GOŚĆ",
+    "homeColor": "#C8102E",
+    "awayColor": "#1B449C",
+    "teamBackground": "#34003a",
+    "goalsBackground": "#00fc8a",
+    "timeBackground": "#ffffff",
+    "teamTextColor": "#ffffff",
+    "goalsTextColor": "#34003a",
+    "timeTextColor": "#34003a"
+  },
+  "introSettings": {
+    "introHomeTeamFullName": "Domyślni Gospodarze Pełna Nazwa",
+    "introAwayTeamFullName": "Domyślni Goście Pełna Nazwa",
+    "introMatchDate": "",
+    "introMatchTime": "",
+    "introMatchLocation": "Domyślne Miejsce",
+    "homeLogoPath": "/images/agricola_logo.png",
+    "awayLogoPath": "/images/opponent_logo.png"
+  }
+}
