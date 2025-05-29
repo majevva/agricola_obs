@@ -3,141 +3,143 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agricola - Ekran Końcowy</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+  <title>Stream Outro - Dziękujemy za oglądanie!</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: 'Montserrat', sans-serif;
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
     
-    .outro-container {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      width: 100%;
-      height: 100%;
-      background-color: transparent;
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+      100% { transform: translateY(0px); }
     }
     
-    .outro-content {
-      text-align: center;
-      padding: 2rem;
-      border-radius: 1rem;
-      background-color: rgba(0, 0, 0, 0.7);
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-      max-width: 80%;
-      animation: fadeIn 1.5s ease-in-out;
-    }
-    
-    .outro-title {
-      font-size: 3rem;
-      font-weight: 900;
-      margin-bottom: 1rem;
-      color: white;
-      text-transform: uppercase;
-      text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    }
-    
-    .outro-subtitle {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 2rem;
-      color: #f0f0f0;
-    }
-    
-    .score-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 1rem 0 2rem;
-    }
-    
-    .team-score {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 1rem 2rem;
-    }
-    
-    .team-name {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      color: white;
-    }
-    
-    .score {
-      font-size: 4rem;
-      font-weight: 900;
-      color: white;
-    }
-    
-    .score-divider {
-      font-size: 4rem;
-      font-weight: 700;
-      margin: 0 1rem;
-      color: rgba(255, 255, 255, 0.5);
-      align-self: flex-end;
-    }
-    
-    .team-color {
-      width: 100%;
-      height: 0.5rem;
-      border-radius: 0.25rem;
-      margin-top: 0.5rem;
-    }
-    
-    .outro-footer {
-      font-size: 1.2rem;
-      color: rgba(255, 255, 255, 0.7);
-      margin-top: 1rem;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    @keyframes pulse {
+    @keyframes pulse-winner { /* Zmieniona nazwa, aby uniknąć konfliktu jeśli 'pulse' jest globalne */
       0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+      50% { transform: scale(1.08); } /* Lekko większe pulsowanie dla zwycięzcy */
       100% { transform: scale(1); }
     }
     
-    .pulse {
-      animation: pulse 2s infinite ease-in-out;
+    @keyframes textGlow {
+      0% { text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+      50% { text-shadow: 0 0 20px rgba(255,255,255,0.9); }
+      100% { text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+    }
+    
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    .animate-pulse-winner { /* Użycie zmienionej nazwy animacji */
+      animation: pulse-winner 1.5s infinite ease-in-out;
+    }
+    
+    .animate-glow {
+      animation: textGlow 3s infinite;
+    }
+    
+    .gradient-bg {
+      background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+    }
+    
+    .social-icon {
+      transition: all 0.3s ease;
+    }
+    
+    .social-icon:hover {
+      transform: translateY(-5px) scale(1.1);
+    }
+    
+    .winner-crown {
+      position: absolute;
+      top: -35px; /* Dostosowano dla lepszego wyglądu */
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 2.5rem; /* Dostosowano rozmiar */
+      color: gold;
+      filter: drop-shadow(0 0 5px rgba(255,215,0,0.7));
+      transition: opacity 0.5s ease-in-out;
+    }
+    
+    .confetti { /* Przykładowy styl dla confetti, jeśli będzie używane */
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: #f00; /* Placeholder */
+      opacity: 0;
+    }
+
+    /* Styl dla paska koloru drużyny (opcjonalnie, jeśli chcesz go dodać) */
+    .team-color-bar {
+        width: 80%; /* Szerokość paska */
+        height: 0.5rem; /* Wysokość paska */
+        border-radius: 0.25rem;
+        margin-top: 0.75rem; /* Odstęp od wyniku */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
   </style>
 </head>
-<body>
-  <div class="outro-container">
-    <div class="outro-content">
-      <div class="outro-title">Koniec Meczu</div>
-      <div class="outro-subtitle">Wynik końcowy</div>
-      
-      <div class="score-container">
-        <div class="team-score">
-          <div class="team-name" id="home-team-name">GOSPODARZE</div>
-          <div class="score pulse" id="home-score">0</div>
-          <div class="team-color" id="home-color"></div>
-        </div>
-        
-        <div class="score-divider">:</div>
-        
-        <div class="team-score">
-          <div class="team-name" id="away-team-name">GOŚCIE</div>
-          <div class="score pulse" id="away-score">0</div>
-          <div class="team-color" id="away-color"></div>
-        </div>
+<body class="gradient-bg h-screen w-full overflow-hidden flex items-center justify-center font-['Montserrat'] text-white">
+  <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+  
+  <div id="confetti-container" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
+  
+  <div class="absolute top-8 left-8 z-10">
+    <div class="text-4xl font-bold font-['Bebas_Neue'] tracking-wider animate-glow" id="match-location-display"></div>
+  </div>
+  
+  <div class="relative z-10 w-full max-w-6xl px-8">
+    <div class="flex flex-col items-center">
+      <div class="text-center mb-12">
+        <h1 class="text-5xl md:text-7xl font-bold mb-4 font-['Bebas_Neue'] tracking-wider animate-glow">KONIEC MECZU</h1>
+        <div class="text-xl md:text-2xl font-medium">Dziękujemy za oglądanie!</div>
       </div>
       
-      <div class="outro-footer">Dziękujemy za oglądanie!</div>
+      <div id="score-box" class="bg-black bg-opacity-60 rounded-xl p-6 md:p-8 mb-12 w-full max-w-3xl shadow-2xl">
+        <div class="flex flex-col md:flex-row items-center justify-around">
+          
+          <div class="flex flex-col items-center text-center mb-8 md:mb-0 relative">
+            <div class="winner-crown hidden" id="winner-crown-1"><i class="fas fa-crown"></i></div>
+            <div class="team-logo w-24 h-24 md:w-32 md:h-32 bg-white bg-opacity-10 rounded-full flex items-center justify-center mb-4 border-2 border-transparent" id="home-logo-container">
+              <img src="/images/agricola_logo.png" alt="Logo Gospodarzy" id="home-logo-img" class="w-20 h-20 md:w-28 md:h-28 object-contain rounded-full">
+            </div>
+            <h2 class="text-2xl md:text-3xl font-bold font-['Bebas_Neue'] tracking-wider" id="home-team-full-name">GOSPODARZE</h2>
+            <div class="text-4xl md:text-5xl font-bold mt-2" id="home-score-display">0</div>
+            <div class="team-color-bar" id="home-color-bar"></div> 
+          </div>
+          
+          <div class="mx-4 md:mx-8 mb-8 md:mb-0 text-center">
+            <div class="text-3xl md:text-4xl font-bold font-['Bebas_Neue']">WYNIK</div>
+          </div>
+          
+          <div class="flex flex-col items-center text-center relative">
+            <div class="winner-crown hidden" id="winner-crown-2"><i class="fas fa-crown"></i></div>
+            <div class="team-logo w-24 h-24 md:w-32 md:h-32 bg-white bg-opacity-10 rounded-full flex items-center justify-center mb-4 border-2 border-transparent" id="away-logo-container">
+              <img src="/images/opponent_logo.png" alt="Logo Gości" id="away-logo-img" class="w-20 h-20 md:w-28 md:h-28 object-contain rounded-full">
+            </div>
+            <h2 class="text-2xl md:text-3xl font-bold font-['Bebas_Neue'] tracking-wider" id="away-team-full-name">GOŚCIE</h2>
+            <div class="text-4xl md:text-5xl font-bold mt-2" id="away-score-display">0</div>
+            <div class="team-color-bar" id="away-color-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-8">
+        <p class="text-lg mb-4">Znajdź nas na:</p>
+        <div class="flex justify-center space-x-6">
+          <a href="#" class="social-icon text-3xl hover:text-blue-400"><i class="fab fa-facebook"></i></a>
+          <a href="#" class="social-icon text-3xl hover:text-red-600"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -145,56 +147,151 @@
     // Funkcja do pobierania danych z serwera
     async function loadScoreData() {
       try {
-        const response = await fetch('/scorebug-data');
-        const data = await response.json();
-        
-        // Aktualizacja nazw drużyn
-        document.getElementById('home-team-name').textContent = data.homeName || 'GOSPODARZE';
-        document.getElementById('away-team-name').textContent = data.awayName || 'GOŚCIE';
-        
-        // Aktualizacja wyników
-        document.getElementById('home-score').textContent = data.homeScore || '0';
-        document.getElementById('away-score').textContent = data.awayScore || '0';
-        
-        // Aktualizacja kolorów
-        document.getElementById('home-color').style.backgroundColor = data.homeColor || '#C8102E';
-        document.getElementById('away-color').style.backgroundColor = data.awayColor || '#1B449C';
-        
-        // Dodatkowe style dla kontenera
-        const outroContent = document.querySelector('.outro-content');
-        outroContent.style.backgroundColor = `${data.teamBackground || '#34003a'}cc`; // cc = 80% opacity
-        
-        // Określenie zwycięzcy
-        const homeScore = parseInt(data.homeScore) || 0;
-        const awayScore = parseInt(data.awayScore) || 0;
-        
-        const homeScoreElement = document.getElementById('home-score');
-        const awayScoreElement = document.getElementById('away-score');
-        
-        // Resetuj klasy
-        homeScoreElement.classList.remove('pulse');
-        awayScoreElement.classList.remove('pulse');
-        
-        // Dodaj animację dla zwycięzcy
-        if (homeScore > awayScore) {
-          homeScoreElement.classList.add('pulse');
-        } else if (awayScore > homeScore) {
-          awayScoreElement.classList.add('pulse');
-        } else {
-          // Remis - obie drużyny pulsują
-          homeScoreElement.classList.add('pulse');
-          awayScoreElement.classList.add('pulse');
+        // Pobierz dane z obu endpointów jednocześnie
+        const [introResponse, scorebugResponse] = await Promise.all([
+          fetch('/initial-intro-settings'),
+          fetch('/scorebug-data')
+        ]);
+
+        // Sprawdź odpowiedzi
+        if (!introResponse.ok) {
+          throw new Error(`Błąd pobierania /initial-intro-settings: ${introResponse.status}`);
         }
+        if (!scorebugResponse.ok) {
+          throw new Error(`Błąd pobierania /scorebug-data: ${scorebugResponse.status}`);
+        }
+
+        const introData = await introResponse.json();
+        const scorebugData = await scorebugResponse.json();
+
+        // === Użyj danych z introData dla nazw, logotypów, lokalizacji, kolorów i tła ===
+        document.getElementById('home-team-full-name').textContent = introData.introHomeTeamFullName || 'GOSPODARZE';
+        document.getElementById('away-team-full-name').textContent = introData.introAwayTeamFullName || 'GOŚCIE';
+        
+        const timestamp = Date.now(); // Dodajemy timestamp, aby zapobiec cache'owaniu logotypów przez przeglądarkę
+        document.getElementById('home-logo-img').src = introData.homeLogoPath ? `${introData.homeLogoPath}?t=${timestamp}` : '/images/agricola_logo.png';
+        document.getElementById('away-logo-img').src = introData.awayLogoPath ? `${introData.awayLogoPath}?t=${timestamp}` : '/images/opponent_logo.png';
+        
+        document.getElementById('match-location-display').textContent = introData.introMatchLocation || 'Miejsce nieustalone';
+
+        const homeColorBar = document.getElementById('home-color-bar');
+        const awayColorBar = document.getElementById('away-color-bar');
+        // Upewnij się, że introData zawiera pola homeColor i awayColor
+        homeColorBar.style.backgroundColor = introData.homeColor || '#C8102E';
+        awayColorBar.style.backgroundColor = introData.awayColor || '#1B449C';
+
+        const scoreBox = document.getElementById('score-box');
+        if (introData.teamBackground) {
+          let r = 0, g = 0, b = 0;
+          if (introData.teamBackground.length === 7) { // Format #RRGGBB
+            r = parseInt(introData.teamBackground.substring(1, 3), 16);
+            g = parseInt(introData.teamBackground.substring(3, 5), 16);
+            b = parseInt(introData.teamBackground.substring(5, 7), 16);
+          } else if (introData.teamBackground.length === 4) { // Format #RGB
+            r = parseInt(introData.teamBackground.substring(1, 2).repeat(2), 16);
+            g = parseInt(introData.teamBackground.substring(2, 3).repeat(2), 16);
+            b = parseInt(introData.teamBackground.substring(3, 4).repeat(2), 16);
+          }
+          scoreBox.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+        } else {
+          scoreBox.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'; // Domyślne tło
+        }
+
+        // === Użyj danych z scorebugData wyłącznie dla wyników ===
+        const homeScoreDisplay = document.getElementById('home-score-display');
+        const awayScoreDisplay = document.getElementById('away-score-display');
+        
+        // Upewnij się, że scorebugData istnieje i zawiera pola homeScore i awayScore
+        const homeScoreValue = scorebugData && scorebugData.homeScore !== undefined ? scorebugData.homeScore : '0';
+        const awayScoreValue = scorebugData && scorebugData.awayScore !== undefined ? scorebugData.awayScore : '0';
+
+        homeScoreDisplay.textContent = homeScoreValue;
+        awayScoreDisplay.textContent = awayScoreValue;
+        
+        // === Logika określania zwycięzcy na podstawie wyników z scorebugData ===
+        const numericHomeScore = parseInt(homeScoreValue) || 0;
+        const numericAwayScore = parseInt(awayScoreValue) || 0;
+        
+        const winnerCrown1 = document.getElementById('winner-crown-1');
+        const winnerCrown2 = document.getElementById('winner-crown-2');
+        
+        homeScoreDisplay.classList.remove('animate-pulse-winner');
+        awayScoreDisplay.classList.remove('animate-pulse-winner');
+        winnerCrown1.classList.add('hidden');
+        winnerCrown1.style.opacity = '0';
+        winnerCrown2.classList.add('hidden');
+        winnerCrown2.style.opacity = '0';
+        
+        if (numericHomeScore > numericAwayScore) {
+          homeScoreDisplay.classList.add('animate-pulse-winner');
+          winnerCrown1.classList.remove('hidden');
+          setTimeout(() => winnerCrown1.style.opacity = '1', 50);
+        } else if (numericAwayScore > numericHomeScore) {
+          awayScoreDisplay.classList.add('animate-pulse-winner');
+          winnerCrown2.classList.remove('hidden');
+          setTimeout(() => winnerCrown2.style.opacity = '1', 50);
+        } else { // Remis
+          homeScoreDisplay.classList.add('animate-pulse-winner');
+          awayScoreDisplay.classList.add('animate-pulse-winner');
+        }
+
       } catch (error) {
-        console.error('Błąd pobierania danych:', error);
+        console.error('Błąd ładowania danych dla ekranu końcowego:', error);
+        // Tutaj możesz dodać logikę wyświetlania domyślnych wartości lub komunikatu o błędzie
+        document.getElementById('home-team-full-name').textContent = 'GOSPODARZE';
+        document.getElementById('away-team-full-name').textContent = 'GOŚCIE';
+        document.getElementById('home-score-display').textContent = '0';
+        document.getElementById('away-score-display').textContent = '0';
+        document.getElementById('match-location-display').textContent = 'Błąd ładowania';
+        // Możesz też ustawić domyślne kolory/tła w razie błędu
+        document.getElementById('home-color-bar').style.backgroundColor = '#C8102E';
+        document.getElementById('away-color-bar').style.backgroundColor = '#1B449C';
+        document.getElementById('score-box').style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
       }
     }
     
+    // Funkcja do tworzenia confetti (pozostaje bez zmian)
+    function createConfetti() {
+        const confettiContainer = document.getElementById('confetti-container');
+        if (!confettiContainer) return;
+
+        const colors = ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'];
+        for (let i = 0; i < 150; i++) {
+            const confetti = document.createElement('div');
+            confetti.classList.add('confetti');
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.top = Math.random() * -100 + 'vh';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.width = (Math.random() * 8 + 4) + 'px';
+            confetti.style.height = confetti.style.width;
+            confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+            confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+            
+            confettiContainer.appendChild(confetti);
+
+            confetti.animate([
+                { transform: `translateY(0) rotate(${Math.random() * 360}deg)`, opacity: 1 },
+                { transform: `translateY(${window.innerHeight + 100}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }
+            ], {
+                duration: Math.random() * 3000 + 4000,
+                easing: 'ease-out',
+                delay: Math.random() * 2000
+            });
+
+            setTimeout(() => {
+                confetti.remove();
+            }, 7000);
+        }
+    }
+
     // Załaduj dane przy starcie
-    loadScoreData();
-    
-    // Odświeżaj dane co 5 sekund
-    setInterval(loadScoreData, 5000);
+    document.addEventListener('DOMContentLoaded', () => {
+      loadScoreData();
+      createConfetti();
+      
+      // Odświeżaj dane co 5 sekund
+      setInterval(loadScoreData, 5000);
+    });
   </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 const express = require('express');
 const fs = require('fs').promises;
-const fsSync = require('fs');
+const fsSync = require('fs'); // Dla operacji synchronicznych, np. przy starcie
 const OBSWebSocket = require('obs-websocket-js').default;
 const multer = require('multer');
 const path = require('path');
@@ -9,63 +9,9 @@ const chalk = require('chalk');
 const { exec } = require('child_process');
 
 const app = express();
-let config = {}; // Zainicjalizuj pustym obiektem, zostanie załadowany później
+let config = {}; 
 
-try {
-    const configPath = path.join(__dirname, 'config.json');
-    let configRaw = fsSync.readFileSync(configPath, 'utf8');
-    if (configRaw.charCodeAt(0) === 0xFEFF) { // Usuń BOM
-      configRaw = configRaw.slice(1);
-    }
-    config = JSON.parse(configRaw);
-} catch (err) {
-    console.error(chalk.bgRed.white(' FATAL ERROR ') + ' Nie można wczytać pliku config.json:', err);
-    process.exit(1); // Zatrzymaj aplikację, jeśli config jest niezbędny
-}
-
-const port = config.port || 3000; // Użyj portu z configu lub domyślnego
-
-// Cache dla danych zawodników
-let playersCache = null;
-let playersCacheTime = 0;
-const CACHE_DURATION = 300000; // 5 minut
-
-// Pobierz lokalny adres IP
-function getLocalIp() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
-    }
-  }
-  return '127.0.0.1';
-}
-
-// Inicjalizacja konfiguracji (aktualizacja hosta OBS)
-function initializeConfig() {
-  const configPath = path.join(__dirname, 'config.json');
-  try {
-    const localIp = getLocalIp();
-    // Upewnij się, że config.obs istnieje przed próbą dostępu do config.obs.host
-    if (config.obs && config.obs.host !== localIp) {
-      const updatedConfig = { ...config, obs: { ...config.obs, host: localIp } };
-      fsSync.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 4), 'utf8');
-      log.system(`Zaktualizowano obs.host w config.json na ${localIp}`);
-      return updatedConfig; // Zwróć zaktualizowany config
-    }
-    return config; // Zwróć oryginalny config, jeśli nie było zmian
-  } catch (err) {
-    // log nie jest jeszcze zdefiniowany tutaj, więc użyj console.error
-    console.error(chalk.bgRed.white(' ERROR ') + ' Błąd aktualizacji config.json: ' + err.message);
-    return config; 
-  }
-}
-
-const finalConfig = initializeConfig(); // Użyj finalConfig w reszcie kodu
-
-// Logowanie
+// --- LOGOWANIE (zdefiniowane na początku) ---
 const log = {
   system: (message) => console.log(chalk.bgBlue.white(' SYSTEM ') + ' ' + message),
   obs: (message) => console.log(chalk.bgMagenta.white(' OBS ') + ' ' + message),
@@ -77,35 +23,74 @@ const log = {
   file: (message) => console.log(chalk.bgWhite.black(' FILE ') + ' ' + message)
 };
 
-const obs = new OBSWebSocket();
+try {
+    const configPath = path.join(__dirname, 'config.json');
+    let configRaw = fsSync.readFileSync(configPath, 'utf8');
+    if (configRaw.charCodeAt(0) === 0xFEFF) { 
+      configRaw = configRaw.slice(1);
+    }
+    config = JSON.parse(configRaw);
+} catch (err) {
+    log.error('Nie można wczytać pliku config.json: ' + err.message);
+    log.error('Upewnij się, że plik config.json istnieje i ma poprawną strukturę JSON.');
+    log.error('Serwer nie może kontynuować bez konfiguracji.');
+    process.exit(1); 
+}
 
-// Middleware
-app.use(express.static('public'));
+const port = config.port || 3000;
+
+// --- Cache dla danych zawodników ---
+let playersCache = null;
+let playersCacheTime = 0;
+const CACHE_DURATION = 300000; // 5 minut
+
+// --- FUNKCJE POMOCNICZE ---
+function getLocalIp() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) return iface.address;
+    }
+  }
+  return '127.0.0.1';
+}
+
+function initializeConfig() {
+  const configPath = path.join(__dirname, 'config.json');
+  try {
+    const localIp = getLocalIp();
+    if (config.obs && config.obs.host && config.obs.host !== localIp) {
+      const updatedConfigData = { ...config, obs: { ...config.obs, host: localIp } };
+      fsSync.writeFileSync(configPath, JSON.stringify(updatedConfigData, null, 4), 'utf8');
+      log.system(`Zaktualizowano obs.host w config.json na ${localIp}`);
+      return updatedConfigData;
+    }
+    return config;
+  } catch (err) {
+    log.error('Błąd aktualizacji config.json: ' + err.message);
+    return config; 
+  }
+}
+const finalConfig = initializeConfig(); // finalConfig będzie teraz używany w całym pliku
+
+const obs = new OBSWebSocket();
+app.use(express.static('public')); // Serwuje pliki z katalogu 'public'
 app.use(express.json({ limit: '1mb' }));
 
-// Multer
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const uploadPath = path.join(__dirname, 'public', 'images');
-        if (!fsSync.existsSync(uploadPath)) {
-            fsSync.mkdirSync(uploadPath, { recursive: true });
-        }
+        const uploadPath = path.join(__dirname, 'public', 'images'); // Loga zapisywane do public/images
+        if (!fsSync.existsSync(uploadPath)) fsSync.mkdirSync(uploadPath, { recursive: true });
         cb(null, uploadPath);
     },
-    filename: function (req, file, cb) {
-        cb(null, file.originalname); 
-    }
+    filename: function (req, file, cb) { cb(null, file.originalname); }
 });
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype === 'image/png' || file.mimetype === 'image/jpeg' || file.mimetype === 'image/svg+xml') {
-        cb(null, true);
-    } else {
-        cb(new Error('Nieprawidłowy typ pliku! Tylko PNG, JPG, SVG są dozwolone.'), false);
-    }
+    if (['image/png', 'image/jpeg', 'image/svg+xml'].includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Nieprawidłowy typ pliku!'), false);
 };
 const upload = multer({ storage: storage, limits: { fileSize: 1024 * 1024 * 2 }, fileFilter: fileFilter });
 
-// Bezpieczne odczytywanie wartości z konfiguracji
 const safeGetConfig = (path, defaultValue) => {
     const keys = path.split('.');
     let current = finalConfig;
@@ -119,22 +104,39 @@ const safeGetConfig = (path, defaultValue) => {
     return current;
 };
 
+const PERSISTENT_DATA_FILE_PATH = path.join(__dirname, 'persistent_data.json');
 
-// Stan aplikacji
+const defaultPersistentData = {
+    scorebug: {
+        homeName: safeGetConfig('teams.defaultHomeName', 'DOM'), 
+        awayName: safeGetConfig('teams.defaultAwayName', 'GOŚĆ'), 
+        homeColor: safeGetConfig('colors.home', '#C8102E'), 
+        awayColor: safeGetConfig('colors.away', '#1B449C'), 
+        teamBackground: safeGetConfig('colors.teamBackground', '#34003a'),
+        goalsBackground: safeGetConfig('colors.goalsBackground', '#00fc8a'), 
+        timeBackground: safeGetConfig('colors.timeBackground', '#ffffff'),
+        teamTextColor: safeGetConfig('colors.teamText', '#ffffff'), 
+        goalsTextColor: safeGetConfig('colors.goalsText', '#34003a'), 
+        timeTextColor: safeGetConfig('colors.timeText', '#34003a')
+    },
+    introSettings: {
+        introHomeTeamFullName: 'Domyślni Gospodarze Pełna Nazwa',
+        introAwayTeamFullName: 'Domyślni Goście Pełna Nazwa',
+        introMatchDate: '', 
+        introMatchTime: '', 
+        introMatchLocation: 'Domyślne Miejsce',
+        homeLogoPath: fsSync.existsSync(path.join(__dirname, 'public', '/images/agricola_logo.png')) ? '/images/agricola_logo.png' : '',
+        awayLogoPath: fsSync.existsSync(path.join(__dirname, 'public', '/images/opponent_logo.png')) ? '/images/opponent_logo.png' : ''
+    }
+};
+
 const appState = {
-  scorebug: {
-    homeName: safeGetConfig('teams.defaultHomeName', 'AGR'), 
-    awayName: safeGetConfig('teams.defaultAwayName', 'LSN'), 
-    homeScore: 0, awayScore: 0,
-    minute: '00', second: '00',
-    homeColor: safeGetConfig('colors.home', '#C8102E'), 
-    awayColor: safeGetConfig('colors.away', '#1B449C'), 
-    teamBackground: safeGetConfig('colors.teamBackground', '#34003a'),
-    goalsBackground: safeGetConfig('colors.goalsBackground', '#00fc8a'), 
-    timeBackground: safeGetConfig('colors.timeBackground', '#ffffff'),
-    teamTextColor: safeGetConfig('colors.teamText', '#ffffff'), 
-    goalsTextColor: safeGetConfig('colors.goalsText', '#34003a'), 
-    timeTextColor: safeGetConfig('colors.timeText', '#34003a')
+  scorebug: { 
+    ...defaultPersistentData.scorebug,
+    homeScore: 0, 
+    awayScore: 0,
+    minute: '00', 
+    second: '00',
   },
   timer: { running: false, seconds: 0, interval: null },
   notification: null,
@@ -145,75 +147,75 @@ const appState = {
     micMuted: true, 
     selectedMicName: safeGetConfig('obs.defaultMicName', 'Mikrofon')
   },
-  introSettings: {
-    introHomeTeamFullName: 'Domyślni Gospodarze Pełna Nazwa',
-    introAwayTeamFullName: 'Domyślni Goście Pełna Nazwa',
-    introMatchDate: '', introMatchTime: '', introMatchLocation: 'Domyślne Miejsce',
-    homeLogoPath: '/images/agricola_logo.png', awayLogoPath: '/images/opponent_logo.png'
-  }
+  introSettings: { ...defaultPersistentData.introSettings }
 };
 
-const INTRO_SETTINGS_FILE_PATH = path.join(__dirname, 'intro_settings.json');
-
-async function saveIntroSettingsToFile() {
+async function loadPersistentData() {
     try {
-        await fs.writeFile(INTRO_SETTINGS_FILE_PATH, JSON.stringify(appState.introSettings, null, 2), 'utf8');
-        log.file('Ustawienia Intro zapisane do pliku.');
-    } catch (err) {
-        log.error("Błąd zapisu ustawień intro do pliku: " + err.message);
-    }
-}
-
-async function loadIntroSettingsFromFile() {
-    try {
-        if (fsSync.existsSync(INTRO_SETTINGS_FILE_PATH)) {
-            const data = await fs.readFile(INTRO_SETTINGS_FILE_PATH, 'utf8');
-            const loadedSettings = JSON.parse(data);
-            appState.introSettings = { ...appState.introSettings, ...loadedSettings };
+        if (fsSync.existsSync(PERSISTENT_DATA_FILE_PATH)) {
+            const data = await fs.readFile(PERSISTENT_DATA_FILE_PATH, 'utf8');
+            const loadedData = JSON.parse(data);
+            
+            appState.scorebug = {
+                ...appState.scorebug, 
+                ...defaultPersistentData.scorebug, 
+                ...(loadedData.scorebug || {}) 
+            };
+            appState.introSettings = {
+                ...defaultPersistentData.introSettings,
+                ...(loadedData.introSettings || {})
+            };
 
             const defaultHomeLogo = '/images/agricola_logo.png';
             const defaultOpponentLogo = '/images/opponent_logo.png';
-
             if (!appState.introSettings.homeLogoPath || !fsSync.existsSync(path.join(__dirname, 'public', appState.introSettings.homeLogoPath))) {
-                 if(fsSync.existsSync(path.join(__dirname, 'public', defaultHomeLogo))) {
-                    appState.introSettings.homeLogoPath = defaultHomeLogo;
-                 } else {
-                    appState.introSettings.homeLogoPath = ''; 
-                 }
+                appState.introSettings.homeLogoPath = fsSync.existsSync(path.join(__dirname, 'public', defaultHomeLogo)) ? defaultHomeLogo : '';
             }
             if (!appState.introSettings.awayLogoPath || !fsSync.existsSync(path.join(__dirname, 'public', appState.introSettings.awayLogoPath))) {
-                if(fsSync.existsSync(path.join(__dirname, 'public', defaultOpponentLogo))) {
-                    appState.introSettings.awayLogoPath = defaultOpponentLogo;
-                } else {
-                    appState.introSettings.awayLogoPath = '';
-                }
+                appState.introSettings.awayLogoPath = fsSync.existsSync(path.join(__dirname, 'public', defaultOpponentLogo)) ? defaultOpponentLogo : '';
             }
-            log.file('Ustawienia Intro załadowane z pliku.');
+            log.file('Trwałe dane aplikacji załadowane z pliku.');
         } else {
-            log.file('Plik intro_settings.json nie istnieje, używam domyślnych wartości i tworzę plik.');
-            if (!fsSync.existsSync(path.join(__dirname, 'public', appState.introSettings.homeLogoPath))) appState.introSettings.homeLogoPath = '';
-            if (!fsSync.existsSync(path.join(__dirname, 'public', appState.introSettings.awayLogoPath))) appState.introSettings.awayLogoPath = '';
-            await saveIntroSettingsToFile(); 
+            log.file(`Plik ${PERSISTENT_DATA_FILE_PATH} nie istnieje. Tworzę z wartościami domyślnymi.`);
+            await savePersistentData();
         }
     } catch (err) {
-        log.error("Błąd odczytu/parsowania ustawień intro z pliku: " + err.message + ". Używam domyślnych.");
-        appState.introSettings = {
-            introHomeTeamFullName: 'Domyślni Gospodarze Pełna Nazwa',
-            introAwayTeamFullName: 'Domyślni Goście Pełna Nazwa',
-            introMatchDate: '', introMatchTime: '', introMatchLocation: 'Domyślne Miejsce',
-            homeLogoPath: fsSync.existsSync(path.join(__dirname, 'public', '/images/agricola_logo.png')) ? '/images/agricola_logo.png' : '',
-            awayLogoPath: fsSync.existsSync(path.join(__dirname, 'public', '/images/opponent_logo.png')) ? '/images/opponent_logo.png' : ''
-        };
-        await saveIntroSettingsToFile(); 
+        log.error("Błąd ładowania/parsowania trwałych danych: " + err.message + ". Używam domyślnych i próbuję zapisać nowy plik.");
+        appState.scorebug = { ...appState.scorebug, ...defaultPersistentData.scorebug };
+        appState.introSettings = { ...defaultPersistentData.introSettings };
+        await savePersistentData();
     }
 }
 
+async function savePersistentData() {
+    try {
+        const dataToSave = {
+            scorebug: {
+                homeName: appState.scorebug.homeName,
+                awayName: appState.scorebug.awayName,
+                homeColor: appState.scorebug.homeColor,
+                awayColor: appState.scorebug.awayColor,
+                teamBackground: appState.scorebug.teamBackground,
+                goalsBackground: appState.scorebug.goalsBackground,
+                timeBackground: appState.scorebug.timeBackground,
+                teamTextColor: appState.scorebug.teamTextColor,
+                goalsTextColor: appState.scorebug.goalsTextColor,
+                timeTextColor: appState.scorebug.timeTextColor,
+            },
+            introSettings: appState.introSettings
+        };
+        await fs.writeFile(PERSISTENT_DATA_FILE_PATH, JSON.stringify(dataToSave, null, 2), 'utf8');
+        log.file('Trwałe dane aplikacji zapisane do pliku.');
+    } catch (err) {
+        log.error("Błąd zapisu trwałych danych aplikacji: " + err.message);
+    }
+}
 
 console.clear();
 log.system('Inicjalizacja serwera...');
 
 function pad(number) { 
-    if (number === null || typeof number === 'undefined') return '00'; // Zabezpieczenie
+    if (number === null || typeof number === 'undefined') return '00';
     return number.toString().padStart(2, '0'); 
 }
 
@@ -254,12 +256,15 @@ function resetServerTimer() {
 async function connectToOBS() {
   if (appState.obs.reconnecting || obs.socket) return;
   appState.obs.reconnecting = true;
-  log.info(`Próba połączenia z OBS: ws://${finalConfig.obs.host}:${finalConfig.obs.port}`);
+  const obsHost = safeGetConfig('obs.host', 'localhost');
+  const obsPort = safeGetConfig('obs.port', 4455);
+  const obsPassword = safeGetConfig('obs.password', '');
+  log.info(`Próba połączenia z OBS: ws://${obsHost}:${obsPort}`);
   try {
-    await obs.connect(`ws://${finalConfig.obs.host}:${finalConfig.obs.port}`, finalConfig.obs.password);
+    await obs.connect(`ws://${obsHost}:${obsPort}`, obsPassword);
     appState.obs.connected = true;
     appState.obs.reconnecting = false;
-    log.success(`Połączono z OBS WebSocket na ${finalConfig.obs.host}:${finalConfig.obs.port}`);
+    log.success(`Połączono z OBS WebSocket na ${obsHost}:${obsPort}`);
     
     try {
         const streamStatus = await obs.call('GetStreamStatus');
@@ -315,7 +320,22 @@ function requireOBSConnection(req, res, next) {
 // API Endpoints
 app.get('/scorebug-data', (req, res) => res.json(appState.scorebug));
 app.get('/notification-data', (req, res) => res.json(appState.notification || {}));
-app.get('/initial-settings', (req, res) => res.json(appState.scorebug)); 
+app.get('/initial-settings', (req, res) => {
+    res.json({
+        homeName: appState.scorebug.homeName,
+        awayName: appState.scorebug.awayName,
+        homeScore: appState.scorebug.homeScore, 
+        awayScore: appState.scorebug.awayScore,
+        homeColor: appState.scorebug.homeColor,
+        awayColor: appState.scorebug.awayColor,
+        teamBackground: appState.scorebug.teamBackground,
+        goalsBackground: appState.scorebug.goalsBackground,
+        timeBackground: appState.scorebug.timeBackground,
+        teamTextColor: appState.scorebug.teamTextColor,
+        goalsTextColor: appState.scorebug.goalsTextColor,
+        timeTextColor: appState.scorebug.timeTextColor
+    });
+});
 app.get('/players-data', async (req, res) => {
     try {
         const now = Date.now();
@@ -324,14 +344,15 @@ app.get('/players-data', async (req, res) => {
           return res.json(playersCache);
         }
         
-        const homePlayersPath = safeGetConfig('teams.home', 'json/default_home_players.json');
-        const awayPlayersPath = safeGetConfig('teams.away', 'json/default_away_players.json');
+        // Poprawiona ścieżka - bez 'public'
+        const homePlayersPath = safeGetConfig('teams.home', 'public/json/agricola_players.json'); 
+        const awayPlayersPath = safeGetConfig('teams.away', 'public/json/away_players.json'); 
 
         log.info(`Ładowanie pliku zawodników gospodarzy: ${homePlayersPath}`);
-        const homePlayersRaw = await fs.readFile(path.join(__dirname, 'public', homePlayersPath), 'utf8')
+        const homePlayersRaw = await fs.readFile(path.join(__dirname, homePlayersPath), 'utf8') // Usunięto 'public'
             .catch(err => { log.error(`Nie można wczytać ${homePlayersPath}: ${err.message}`); return '[]'; });
         log.info(`Ładowanie pliku zawodników gości: ${awayPlayersPath}`);
-        const awayPlayersRaw = await fs.readFile(path.join(__dirname, 'public', awayPlayersPath), 'utf8')
+        const awayPlayersRaw = await fs.readFile(path.join(__dirname, awayPlayersPath), 'utf8') // Usunięto 'public'
             .catch(err => { log.error(`Nie można wczytać ${awayPlayersPath}: ${err.message}`); return '[]'; });
         
         const homePlayersJson = JSON.parse(homePlayersRaw.charCodeAt(0) === 0xFEFF ? homePlayersRaw.slice(1) : homePlayersRaw);
@@ -347,6 +368,7 @@ app.get('/players-data', async (req, res) => {
       }
 });
 app.get('/initial-intro-settings', async (req, res) => res.json(appState.introSettings) );
+
 app.post('/update-intro-settings', upload.fields([{ name: 'homeLogo', maxCount: 1 }, { name: 'awayLogo', maxCount: 1 }]), async (req, res) => {
     log.info('Otrzymano żądanie /update-intro-settings');
     try {
@@ -365,7 +387,7 @@ app.post('/update-intro-settings', upload.fields([{ name: 'homeLogo', maxCount: 
             log.file(`Zaktualizowano ścieżkę logo gości na: ${appState.introSettings.awayLogoPath}`);
         }
         
-        await saveIntroSettingsToFile();
+        await savePersistentData();
         log.success("Zaktualizowane ustawienia Intro: " + JSON.stringify(appState.introSettings));
         res.json({ message: 'Ustawienia Intro zaktualizowane!', newSettings: appState.introSettings });
 
@@ -375,7 +397,6 @@ app.post('/update-intro-settings', upload.fields([{ name: 'homeLogo', maxCount: 
     }
 });
 
-// --- ENDPOINT: /obs-status ---
 app.get('/obs-status', async (req, res) => {
     let currentMicMuted = appState.obs.micMuted;
     let currentStreamActive = appState.obs.streamActive;
@@ -417,7 +438,6 @@ app.get('/obs-status', async (req, res) => {
     });
 });
 
-// --- ENDPOINT: /obs-audio-inputs ---
 app.get('/obs-audio-inputs', requireOBSConnection, async (req, res) => {
     try {
         const kindsToTry = ['wasapi_input_capture', 'coreaudio_input_capture', 'pulse_input_capture', 'pipewire-input'];
@@ -440,8 +460,6 @@ app.get('/obs-audio-inputs', requireOBSConnection, async (req, res) => {
     }
 });
 
-
-// --- ENDPOINT: /toggle-mic ---
 app.post('/toggle-mic', requireOBSConnection, async (req, res) => {
   try {
     const { inputName, mute } = req.body; 
@@ -504,7 +522,6 @@ app.post('/switch-scene', requireOBSConnection, async (req, res) => {
     }
 });
 
-// --- ENDPOINT: /update-time ---
 app.post('/update-time', (req, res) => {
   const { action, minute, second } = req.body;
   log.timer(`Otrzymano prośbę zmiany czasu: ${JSON.stringify(req.body)}`);
@@ -551,7 +568,6 @@ app.post('/update-time', (req, res) => {
   }
 });
 
-// --- ENDPOINT: /timer-state ---
 app.get('/timer-state', (req, res) => {
     res.json({
         running: appState.timer.running,
@@ -560,30 +576,45 @@ app.get('/timer-state', (req, res) => {
     });
 });
 
-
-app.post('/update-scorebug', (req, res) => { 
+app.post('/update-scorebug', async (req, res) => { 
     try {
-        const validKeys = Object.keys(appState.scorebug);
-        const updates = {};
+        const persistentScorebugKeys = [ 
+            'homeName', 'awayName', 
+            'homeColor', 'awayColor', 'teamBackground', 
+            'goalsBackground', 'timeBackground', 'teamTextColor', 
+            'goalsTextColor', 'timeTextColor'
+        ];
+        
+        let persistentDataChanged = false;
+
         for (const [key, value] of Object.entries(req.body)) {
-          if (validKeys.includes(key)) {
-            if ((key === 'homeScore' || key === 'awayScore') && (typeof value !== 'number' || value < 0)) {
-                log.error(`Nieprawidłowa wartość dla ${key}: ${value}`);
-                return res.status(400).json({ error: `Nieprawidłowa wartość dla ${key}` });
+          if (persistentScorebugKeys.includes(key)) {
+            if (appState.scorebug[key] !== value) { 
+                appState.scorebug[key] = value; 
+                persistentDataChanged = true;
             }
-            updates[key] = value;
+          } else if (key === 'homeScore' || key === 'awayScore') {
+            const score = parseInt(value);
+            if (!isNaN(score) && score >= 0) {
+                if (key === 'homeScore') appState.scorebug.homeScore = score;
+                if (key === 'awayScore') appState.scorebug.awayScore = score;
+                log.info(`Wynik (${key}) zaktualizowany przez /update-scorebug na: ${score}`);
+            } else {
+                 log.warn(`Otrzymano nieprawidłowy wynik dla ${key} w /update-scorebug: ${value}`);
+            }
           }
         }
-        if (Object.keys(updates).length === 0) {
-            log.warn('Brak prawidłowych danych do aktualizacji scorebuga.');
-            return res.status(400).json({ error: 'Brak prawidłowych danych do aktualizacji' });
+
+        if (persistentDataChanged) { 
+            await savePersistentData();
+            log.success(`Zaktualizowano i zapisano trwałe ustawienia scorebuga.`);
+        } else if (Object.keys(req.body).some(k => k === 'homeScore' || k === 'awayScore')) {
+            log.info('Zaktualizowano tylko nietrwałe wyniki przez /update-scorebug.');
+        } else {
+            log.info('Brak zmian w trwałych ustawieniach scorebuga do zapisania.');
         }
-        Object.assign(appState.scorebug, updates);
-        if (updates.minute !== undefined || updates.second !== undefined) {
-          appState.timer.seconds = (parseInt(appState.scorebug.minute) || 0) * 60 + (parseInt(appState.scorebug.second) || 0);
-        }
-        log.success(`Zaktualizowano scorebug: ${JSON.stringify(updates)}`);
-        res.json({ status: 'success', message: 'Scorebug zaktualizowany', updates });
+        
+        res.json({ status: 'success', message: 'Scorebug zaktualizowany', newSettings: appState.scorebug });
       } catch (error) {
         log.error(`Błąd aktualizacji scorebug: ${error.message}`);
         res.status(500).json({ error: 'Błąd aktualizacji scorebug', details: error.message });
@@ -653,7 +684,7 @@ app.use('*', (req, res) => res.status(404).json({ error: 'Endpoint nie został z
 async function gracefulShutdown() { 
     log.system('Rozpoczęto graceful shutdown...');
     if (appState.timer.interval) clearInterval(appState.timer.interval);
-    if (appState.obs.connected && obs.socket) { // Sprawdź obs.socket
+    if (appState.obs.connected && obs.socket) { 
         try {
             await obs.disconnect();
             log.obs('Rozłączono z OBS.');
@@ -670,16 +701,16 @@ process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
 async function startServer() {
-    await loadIntroSettingsFromFile(); 
+    await loadPersistentData(); 
     await connectToOBS(); 
 
     app.listen(port, () => {
-      const serverUrl = `http://10.21.96.130:${port}`;
+      const serverUrl = `http://localhost:${port}`;
       log.system('='.repeat(50));
       log.system(`Panel OBS uruchomiony!`);
       log.system(`Panel dostępny pod adresem: ${chalk.underline.cyan(serverUrl)}`);
       log.system(`Lokalny adres IP serwera (dla OBS): ${chalk.yellow(getLocalIp())}`);
-      log.system(`Upewnij się, że OBS WebSocket jest skonfigurowany na: ws://${finalConfig.obs.host}:${finalConfig.obs.port}`);
+      log.system(`Upewnij się, że OBS WebSocket jest skonfigurowany na: ws://${safeGetConfig('obs.host', 'localhost')}:${safeGetConfig('obs.port', 4455)}`);
       log.system(`Domyślny mikrofon z config.json: ${chalk.blue(safeGetConfig('obs.defaultMicName', 'Mikrofon (nie zdefiniowano w config)'))}`);
       log.system(`Naciśnij ${chalk.bold.yellow('Ctrl+C')} aby zatrzymać serwer`);
       log.system('='.repeat(50));

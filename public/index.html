@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stream Control Panel</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -198,7 +199,7 @@
       </nav>
 
       <div class="mt-auto">
-        <button id="help-btn" class="sidebar-btn" aria-label="Pomoc">
+        <button id="help-btn" data-tab="help-tab" class="sidebar-btn" aria-label="Pomoc">
           <i class="fas fa-question"></i>
           <span class="sidebar-tooltip">Pomoc</span>
         </button>
@@ -421,15 +422,6 @@
             <button class="switch-scene-btn bg-red-600 hover:bg-red-700 text-white rounded-xl p-4 flex flex-col items-center justify-center aspect-square transition-all border-2 border-transparent hover:border-red-400" data-scene-name="Koniec">
               <i class="fas fa-flag-checkered text-3xl mb-2"></i><span class="font-semibold text-sm">Koniec</span>
             </button>
-            <button class="switch-scene-btn bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-4 flex flex-col items-center justify-center aspect-square transition-all border-2 border-transparent hover:border-blue-400" data-scene-name="Statystyki">
-              <i class="fas fa-chart-line text-3xl mb-2"></i><span class="font-semibold text-sm">Statystyki</span>
-            </button>
-            <button class="switch-scene-btn bg-purple-600 hover:bg-purple-700 text-white rounded-xl p-4 flex flex-col items-center justify-center aspect-square transition-all border-2 border-transparent hover:border-purple-400" data-scene-name="Zawodnicy">
-              <i class="fas fa-users text-3xl mb-2"></i><span class="font-semibold text-sm">Zawodnicy</span>
-            </button>
-             <button class="switch-scene-btn bg-pink-600 hover:bg-pink-700 text-white rounded-xl p-4 flex flex-col items-center justify-center aspect-square transition-all border-2 border-transparent hover:border-pink-400" data-scene-name="Wynik_koncowy">
-              <i class="fas fa-trophy text-3xl mb-2"></i><span class="font-semibold text-sm">Wynik Końcowy</span>
-            </button>
           </div>
         </div>
 
@@ -611,7 +603,159 @@
             </div>
           </div>
         </div>
-      </div>
+<div id="help-tab" class="tab-content">
+          <div class="space-y-8 text-slate-300">
+
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+              <h2 class="text-2xl font-bold mb-6 text-indigo-400 flex items-center"><i class="fas fa-rocket mr-3"></i>Pomoc - Panel Sterowania Transmisją OBS - AGRICOLA MIERKI</h2>
+              <p class="text-slate-400 leading-relaxed">
+                Panel OBS to zaawansowane narzędzie zaprojektowane do kompleksowego zarządzania Twoją transmisją na żywo, z pełną integracją z OBS Studio. System ten umożliwia intuicyjną kontrolę nad kluczowymi elementami streamu, takimi jak dynamiczny scoreboard, precyzyjny timer meczowy, system powiadomień dla widzów oraz konfiguracja ekranu startowego (intro) dla każdego meczu.
+              </p>
+            </div>
+
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+              <h3 class="text-xl font-semibold mb-4 text-indigo-400 flex items-center"><i class="fas fa-network-wired mr-3"></i>Dostępne API Endpoints</h3>
+              <p class="text-slate-400 mb-4 text-sm">Poniżej znajduje się lista endpointów API wykorzystywanych przez panel do komunikacji z backendem. Zrozumienie ich działania może być pomocne przy zaawansowanej konfiguracji lub diagnostyce.</p>
+
+              <div class="space-y-6">
+                <div>
+                  <h4 class="text-lg font-medium text-slate-200 mb-2">Dane Scoreboard</h4>
+                  <ul class="list-disc list-inside space-y-2 pl-4 text-slate-400">
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">GET /scorebug-data</code> - Pobiera aktualne dane tablicy wyników.</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">GET /initial-settings</code> - Pobiera początkowe ustawienia scoreboardu.</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /update-scorebug</code> - Aktualizuje dane tablicy wyników (nazwy drużyn, wyniki, kolory).</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 class="text-lg font-medium text-slate-200 mb-2">Zarządzanie Timerem</h4>
+                  <ul class="list-disc list-inside space-y-2 pl-4 text-slate-400">
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /timer/start</code> - Uruchamia timer meczu.</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /timer/stop</code> - Zatrzymuje timer meczu.</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /timer/reset</code> - Resetuje timer do 00:00.</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /timer/set</code> - Ustawia konkretny czas na timerze (format MM:SS).</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 class="text-lg font-medium text-slate-200 mb-2">System Powiadomień</h4>
+                  <ul class="list-disc list-inside space-y-2 pl-4 text-slate-400">
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">GET /notification-data</code> - Pobiera aktualne dane powiadomienia.</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /show-notification</code> - Wyświetla nowe powiadomienie na streamie.</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /hide-notification</code> - Ukrywa aktywne powiadomienie.</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 class="text-lg font-medium text-slate-200 mb-2">Zarządzanie Zawodnikami</h4>
+                  <ul class="list-disc list-inside space-y-2 pl-4 text-slate-400">
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">GET /players-data</code> - Pobiera listę zawodników (gospodarze i goście).
+                      <span class="block text-xs text-slate-500 pl-4">System automatycznie cache'uje dane na 5 minut dla lepszej wydajności.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 class="text-lg font-medium text-slate-200 mb-2">Ustawienia Intro</h4>
+                  <ul class="list-disc list-inside space-y-2 pl-4 text-slate-400">
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">GET /initial-intro-settings</code> - Pobiera zapisane ustawienia ekranu intro.</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /update-intro-settings</code> - Aktualizuje ustawienia intro.
+                      <span class="block text-xs text-slate-500 pl-4">Obsługuje upload logotypów (PNG, JPG, SVG - max 2MB). Pola: nazwy drużyn, data, czas, lokalizacja.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 class="text-lg font-medium text-slate-200 mb-2">Integracja z OBS</h4>
+                  <ul class="list-disc list-inside space-y-2 pl-4 text-slate-400">
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">GET /obs-status</code> - Sprawdza status połączenia z OBS WebSocket.</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /obs/toggle-stream</code> - Włącza/wyłącza stream (wymaga aktywnego połączenia z OBS).</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /obs/toggle-mic</code> - Wycisza/włącza mikrofon w OBS (wymaga aktywnego połączenia).</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="text-lg font-medium text-slate-200 mb-2">Zarządzanie Plikami</h4>
+                  <ul class="list-disc list-inside space-y-2 pl-4 text-slate-400">
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">POST /upload</code> - Upload plików graficznych (np. logotypy).</li>
+                    <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">GET /images/[filename]</code> - Dostęp do uploadowanych plików graficznych.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+              <h3 class="text-xl font-semibold mb-4 text-indigo-400 flex items-center"><i class="fas fa-shield-alt mr-3"></i>Zasady Użytkowania i Bezpieczeństwo</h3>
+              <div class="space-y-3 text-slate-400">
+                <p><strong class="text-slate-300">Połączenie z OBS:</strong> System dąży do automatycznego połączenia z OBS WebSocket. W przypadku utraty połączenia, podejmowane są próby ponownego połączenia co 5-10 sekund. Wszystkie funkcje zależne od OBS wymagają aktywnego i stabilnego połączenia.</p>
+                <p><strong class="text-slate-300">Bezpieczeństwo Plików:</strong> Obowiązuje limit rozmiaru uploadowanych plików (2MB). Obsługiwane formaty graficzne to PNG, JPG, oraz SVG. System przeprowadza automatyczną walidację typów plików w celu zapewnienia bezpieczeństwa.</p>
+                <p><strong class="text-slate-300">Cache i Wydajność:</strong> Dane zawodników są cache'owane przez 5 minut w celu optymalizacji wydajności. Ustawienia ekranu startowego (intro) są zapisywane w pliku <code class="bg-slate-900 text-indigo-300 px-1.5 py-0.5 rounded-md text-xs">intro_settings.json</code>. Zaleca się regularne tworzenie kopii zapasowych konfiguracji.</p>
+              </div>
+            </div>
+
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+              <h3 class="text-xl font-semibold mb-4 text-indigo-400 flex items-center"><i class="fas fa-palette mr-3"></i>Konfiguracja Wyglądu</h3>
+              <div class="space-y-3 text-slate-400">
+                <p><strong class="text-slate-300">Kolorystyka Scoreboardu:</strong></p>
+                <ul class="list-disc list-inside space-y-1 pl-6">
+                    <li>Kolory drużyn: Domyślnie <span class="font-mono px-1" style="color: #C8102E;">#C8102E</span> (czerwony) i <span class="font-mono px-1" style="color: #1B449C;">#1B449C</span> (niebieski).</li>
+                    <li>Tło nazw drużyn: Domyślnie <span class="font-mono px-1" style="color: #34003a; background-color: #ccc; padding: 0 2px; border-radius: 2px;">#34003A</span>.</li>
+                    <li>Tło wyniku (goli): Domyślnie <span class="font-mono px-1" style="color: #00fc8a; background-color: #333; padding: 0 2px; border-radius: 2px;">#00FC8A</span>.</li>
+                    <li>Tło timera: Domyślnie <span class="font-mono px-1" style="color: #ffffff; background-color: #333; padding: 0 2px; border-radius: 2px;">#FFFFFF</span>.</li>
+                </ul>
+                <p>Wszystkie te kolory można dynamicznie zmieniać w zakładce "Ustawienia" lub poprzez API.</p>
+                <p><strong class="text-slate-300">Timer:</strong> Format wyświetlania czasu to MM:SS. System automatycznie dodaje wiodące zera. Istnieje możliwość ustawienia dowolnego czasu startowego.</p>
+              </div>
+            </div>
+
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+              <h3 class="text-xl font-semibold mb-4 text-indigo-400 flex items-center"><i class="fas fa-exclamation-triangle mr-3"></i>Obsługa Błędów i Logowanie</h3>
+              <div class="space-y-3 text-slate-400">
+                <p>Panel informuje o potencjalnych problemach za pomocą kodów błędów oraz logów serwera:</p>
+                <ul class="list-disc list-inside space-y-1 pl-6">
+                  <li><code class="bg-red-700 text-white px-1.5 py-0.5 rounded-md text-xs">Kod 503</code>: Problem z połączeniem z OBS WebSocket.</li>
+                  <li><code class="bg-red-700 text-white px-1.5 py-0.5 rounded-md text-xs">Kod 500</code>: Wewnętrzne błędy serwera (szczegółowe informacje dostępne w logach serwera).</li>
+                  <li><code class="bg-yellow-600 text-white px-1.5 py-0.5 rounded-md text-xs">Kod 400</code>: Nieprawidłowe dane wejściowe przesłane do API.</li>
+                </ul>
+                <p>System oferuje pełne logowanie operacji w konsoli serwera z kolorowym oznaczeniem typów komunikatów (np. <code class="bg-blue-600 text-white px-1.5 py-0.5 rounded-md text-xs">SYSTEM</code>, <code class="bg-purple-600 text-white px-1.5 py-0.5 rounded-md text-xs">OBS</code>, <code class="bg-green-600 text-white px-1.5 py-0.5 rounded-md text-xs">TIMER</code>, <code class="bg-red-600 text-white px-1.5 py-0.5 rounded-md text-xs">ERROR</code>), co ułatwia monitorowanie i diagnostykę.</p>
+              </div>
+            </div>
+            
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+              <h3 class="text-xl font-semibold mb-4 text-indigo-400 flex items-center"><i class="fas fa-folder-open mr-3"></i>Pliki Konfiguracyjne i Dane</h3>
+              <div class="space-y-3 text-slate-400">
+                <ul class="list-disc list-inside space-y-2 pl-4">
+                  <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">config.json</code>: Główny plik konfiguracyjny panelu (np. porty, dane dostępowe do OBS, wartości domyślne).</li>
+                  <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">intro_settings.json</code>: Plik przechowujący ustawienia ekranu startowego (intro), generowany i aktualizowany automatycznie.</li>
+                  <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">public/data/</code>: Katalog, w którym powinny znajdować się pliki JSON z listami zawodników.</li>
+                  <li><code class="bg-slate-900 text-indigo-300 px-2 py-1 rounded-md text-sm">public/images/</code>: Zalecany katalog do przechowywania logotypów drużyn i innych grafik.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+              <h3 class="text-xl font-semibold mb-4 text-indigo-400 flex items-center"><i class="fas fa-question-circle mr-3"></i>Wskazówki dla Użytkowników</h3>
+              <ul class="list-disc list-inside space-y-3 pl-4 text-slate-400">
+                <li>Przed uruchomieniem panelu, <strong class="text-slate-300">upewnij się, że serwer OBS WebSocket jest aktywny</strong> w OBS Studio i skonfigurowany (port, hasło).</li>
+                <li>Sprawdź poprawność nazw źródeł audio (mikrofonu) oraz scen w OBS, jeśli korzystasz z funkcji zarządzania nimi przez panel.</li>
+                <li>Logotypy drużyn najlepiej umieszczać w dedykowanym folderze (np. <code class="bg-slate-900 text-indigo-300 px-1.5 py-0.5 rounded-md text-xs">public/images/</code>) i linkować je poprawnie w ustawieniach intro.</li>
+                <li>Listy zawodników powinny być przygotowane w formacie JSON jako tablica obiektów. Skorzystaj z opcji "Wyczyść Cache Zawodników" w Ustawieniach, jeśli wprowadziłeś zmiany w plikach i nie są one odzwierciedlone.</li>
+                <li>Panel może próbować automatycznie wykryć lokalny adres IP dla ułatwienia połączenia z OBS na tym samym komputerze.</li>
+              </ul>
+            </div>
+
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+              <h3 class="text-xl font-semibold mb-4 text-red-400 flex items-center"><i class="fas fa-tools mr-3"></i>Rozwiązywanie Problemów</h3>
+              <ul class="list-disc list-inside space-y-3 pl-4 text-slate-400">
+                <li><strong class="text-slate-300">Brak połączenia z OBS:</strong> Sprawdź, czy OBS Studio jest uruchomione. Upewnij się, że serwer WebSocket w OBS jest włączony (w OBS: Narzędzia -> Ustawienia WebSocket Server), port i hasło w panelu zgadzają się z konfiguracją OBS. Sprawdź zaporę sieciową.</li>
+                <li><strong class="text-slate-300">Nie działa przełączanie mikrofonu/streamu:</strong> Zweryfikuj nazwę źródła audio (mikrofonu) oraz poprawność konfiguracji scen w ustawieniach panelu (jeśli dotyczy) i OBS. Upewnij się, że połączenie z OBS jest aktywne.</li>
+                <li><strong class="text-slate-300">Błędy przy uploadzie plików (logo):</strong> Sprawdź format pliku (dozwolone: PNG, JPG, SVG) oraz jego rozmiar (maksymalnie 2MB). Upewnij się, że serwer ma uprawnienia do zapisu w docelowym katalogu.</li>
+                <li><strong class="text-slate-300">Timer nie startuje lub nie aktualizuje się:</strong> Odśwież stronę panelu. Sprawdź konsolę przeglądarki (F12) oraz logi serwera pod kątem błędów JavaScript lub problemów z komunikacją.</li>
+                <li><strong class="text-slate-300">Zmiany w ustawieniach nie są widoczne:</strong> Upewnij się, że kliknąłeś przycisk "Zapisz" lub "Aktualizuj" dla danej sekcji. W przypadku problemów z cache, spróbuj odświeżyć stronę z pominięciem cache (Ctrl+Shift+R lub Cmd+Shift+R).</li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
     </div>
   </div>
 

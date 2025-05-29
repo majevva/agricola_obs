@@ -4,300 +4,145 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agricola - Ekran Startowy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: 'Montserrat', sans-serif;
-    }
-    
-    .intro-container {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      width: 100%;
-      height: 100%;
-      background-color: transparent; /* Tło OBS będzie widoczne */
-    }
-    
-    .intro-content {
-      text-align: center;
-      padding: 2rem;
-      border-radius: 1rem;
-      background-color: rgba(0, 0, 0, 0.7); /* Domyślne tło, może być nadpisane przez JS */
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-      max-width: 80%;
-      animation: fadeIn 1.5s ease-in-out;
-    }
-    
-    .intro-title {
-      font-size: 3rem;
-      font-weight: 900;
-      margin-bottom: 1rem;
-      color: white;
-      text-transform: uppercase;
-      text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    }
-    
-    .intro-subtitle {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 2rem;
-      color: #f0f0f0;
-    }
-    
-    .match-info {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 1rem 0 2rem;
-    }
-    
-    .team-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 1rem 2rem;
-    }
-    
-    .team-name {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      color: white;
-    }
-    
-    .team-logo {
-      width: 120px;
-      height: 120px;
-      background-color: rgba(255, 255, 255, 0.1);
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 1rem;
-      overflow: hidden;
-    }
-    
-    .team-logo img {
-      max-width: 100px;
-      max-height: 100px;
-      object-fit: contain;
-    }
-    
-    .vs-divider {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin: 0 2rem;
-      color: rgba(255, 255, 255, 0.7);
-      align-self: center;
-    }
-    
-    .team-color-bar { /* Zmieniono klasę na team-color-bar dla jasności */
-      width: 100%;
-      height: 0.5rem;
-      border-radius: 0.25rem;
-      margin-top: 0.5rem;
-    }
-    
-    .match-details {
-      display: flex;
-      flex-direction: column; /* Ustawione dla lepszego układu, można zmienić na row z wrap */
-      align-items: center;   /* Wycentrowanie elementów */
-      justify-content: center; /* Dodatkowe centrowanie */
-      gap: 0.5rem; /* Odstęp między elementami */
-      margin-top: 1.5rem;
-      padding: 1rem;
-      background-color: rgba(255, 255, 255, 0.1);
-      border-radius: 0.5rem;
-    }
-    
-    .match-detail-item { /* Klasa dla każdego elementu w match-details */
-      font-size: 1.2rem;
-      color: white;
-      display: flex; /* Umożliwia umieszczenie ikony i tekstu obok siebie */
-      align-items: center; /* Wyrównanie ikony i tekstu w pionie */
-    }
-    
-    .match-detail-item i {
-      margin-right: 0.5rem;
-      color: rgba(255, 255, 255, 0.8);
-    }
-        
-    .intro-footer {
-      font-size: 1.2rem;
-      color: rgba(255, 255, 255, 0.7);
-      margin-top: 1rem;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .social-media {
-      display: flex;
-      justify-content: center;
-      gap: 1.5rem;
-      margin-top: 1.5rem;
-    }
-    
-    .social-icon {
-      font-size: 1.5rem;
-      color: white;
-      transition: transform 0.3s ease;
-    }
-    
-    .social-icon:hover {
-      transform: scale(1.2);
-    }
-  </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @keyframes pulse { 0%,100% { transform: scale(1);} 50% { transform: scale(1.05);} }
+    @keyframes float { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-10px);} }
+    @keyframes slideIn { from { transform: translateX(-50px); opacity:0;} to { transform: translateX(0); opacity:1;} }
+    @keyframes slideInRight { from { transform: translateX(50px); opacity:0;} to { transform: translateX(0); opacity:1;} }
+    .animate-delay-1 { animation-delay:0.3s; }
+    .animate-delay-2 { animation-delay:0.6s; }
+    .animate-delay-3 { animation-delay:0.9s; }
+    .animate-delay-4 { animation-delay:1.2s; }
+    .animate-delay-5 { animation-delay:1.5s; }
+  </style>
 </head>
-<body>
-  <div class="intro-container">
-    <div class="intro-content">
-      <div class="intro-title" id="intro-main-title">Już wkrótce</div>
-      <div class="intro-subtitle" id="intro-secondary-title">Transmisja na żywo</div>
-      
-      <div class="match-info">
-        <div class="team-container">
-          <div class="team-name" id="home-team-full-name">GOSPODARZE</div>
-          <div class="team-logo">
-            <img id="home-logo-img" src="/images/agricola_logo.png" alt="Logo gospodarzy"> </div>
-          <div class="team-color-bar" id="home-color-bar" style="background-color: #C8102E;"></div>
+<body class="bg-gradient-to-br from-gray-900 to-black h-screen w-full overflow-hidden font-['Montserrat']">
+  <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1920')] bg-cover bg-center opacity-20"></div>
+  <div class="relative h-full w-full flex flex-col items-center justify-center px-4">
+    <!-- Countdown Timer -->
+    <div class="mb-8 text-center animate-fade-in">
+      <div class="text-5xl md:text-7xl font-black text-white mb-2 animate-pulse" style="animation:pulse 2s infinite;">
+        <span id="countdown-minutes">00</span>:<span id="countdown-seconds">00</span>
+      </div>
+      <div class="text-xl text-gray-300" id="intro-secondary-title">DO ROZPOCZĘCIA MECZU</div>
+    </div>
+    <!-- Main Content -->
+    <div class="bg-black bg-opacity-70 backdrop-blur-lg rounded-xl p-8 max-w-4xl w-full border-2 border-opacity-20 border-white shadow-2xl intro-content">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+        <div class="flex flex-col items-center animate-slide-in" style="animation:slideIn 1s ease-out;">
+          <div id="home-color-bar" class="w-24 h-2 rounded-full mb-2 bg-red-600"></div>
+          <div class="text-3xl font-bold text-white text-center" id="home-team-full-name">GOSPODARZE</div>
+          <div class="w-40 h-40 bg-gray-800 rounded-full p-4 my-4 flex items-center justify-center border-4 border-white border-opacity-10 animate-float" style="animation:float 3s ease-in-out infinite;">
+            <img id="home-logo-img" src="/images/agricola_logo.png" alt="Home Team" class="max-h-24 max-w-24">
+          </div>
         </div>
-        
-        <div class="vs-divider">VS</div>
-        
-        <div class="team-container">
-          <div class="team-name" id="away-team-full-name">GOŚCIE</div>
-          <div class="team-logo">
-            <img id="away-logo-img" src="/images/opponent_logo.png" alt="Logo gości"> </div>
-          <div class="team-color-bar" id="away-color-bar" style="background-color: #1B449C;"></div>
+        <div class="flex flex-col items-center">
+          <div class="text-4xl font-black text-white bg-gradient-to-r from-red-600 to-blue-600 rounded-full w-20 h-20 flex items-center justify-center shadow-lg animate-pulse" style="animation:pulse 1.5s infinite;">VS</div>
+          <div class="mt-4 text-xl text-gray-300 animate-fade-in animate-delay-2" id="intro-main-title">MECZ PIŁKI NOŻNEJ</div>
+        </div>
+        <div class="flex flex-col items-center animate-slide-in-right" style="animation:slideInRight 1s ease-out;">
+          <div id="away-color-bar" class="w-24 h-2 rounded-full mb-2 bg-blue-600"></div>
+          <div class="text-3xl font-bold text-white text-center" id="away-team-full-name">GOŚCIE</div>
+          <div class="w-40 h-40 bg-gray-800 rounded-full p-4 my-4 flex items-center justify-center border-4 border-white border-opacity-10 animate-float" style="animation:float 3s ease-in-out infinite 0.5s;">
+            <img id="away-logo-img" src="/images/opponent_logo.png" alt="Away Team" class="max-h-24 max-w-24">
+          </div>
         </div>
       </div>
-      
-      <div class="match-details">
-        <div class="match-detail-item">
-          <i class="fas fa-calendar-alt"></i> <span id="match-date-display">Data nieustalona</span>
+      <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-white">
+        <div class="bg-gray-800 bg-opacity-50 p-4 rounded-lg flex items-center animate-fade-in animate-delay-3">
+          <i class="fas fa-calendar-alt text-2xl mr-3 text-red-400"></i>
+          <div><div class="text-sm text-gray-300">DATA MECZU</div><div class="font-bold" id="match-date-display">Data nieustalona</div></div>
         </div>
-        <div class="match-detail-item">
-          <i class="fas fa-clock"></i> <span id="match-time-display">Godzina nieustalona</span>
+        <div class="bg-gray-800 bg-opacity-50 p-4 rounded-lg flex items-center animate-fade-in animate-delay-4">
+          <i class="fas fa-clock text-2xl mr-3 text-blue-400"></i>
+          <div><div class="text-sm text-gray-300">GODZINA</div><div class="font-bold" id="match-time-display">Godzina nieustalona</div></div>
         </div>
-        <div class="match-detail-item">
-          <i class="fas fa-map-marker-alt"></i> <span id="match-location-display">Miejsce nieustalone</span>
+        <div class="bg-gray-800 bg-opacity-50 p-4 rounded-lg flex items-center animate-fade-in animate-delay-5">
+          <i class="fas fa-map-marker-alt text-2xl mr-3 text-green-400"></i>
+          <div><div class="text-sm text-gray-300">LOKALIZACJA</div><div class="font-bold" id="match-location-display">Miejsce nieustalone</div></div>
         </div>
       </div>
-      
-      <div class="social-media">
-        <a href="#" class="social-icon"><i class="fab fa-facebook"></i></a>
-        <a href="#" class="social-icon"><i class="fab fa-youtube"></i></a>
-        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+      <div class="mt-8 text-center">
+        <div class="flex justify-center space-x-6 mb-4 social-media">
+          <a href="#" class="text-white hover:text-red-400 transition-colors duration-300 text-2xl social-icon"><i class="fab fa-facebook"></i></a>
+          <a href="#" class="text-white hover:text-red-500 transition-colors duration-300 text-2xl social-icon"><i class="fab fa-youtube"></i></a>
+        </div>
+        <div class="text-gray-400 text-sm intro-footer">Transmisja rozpocznie się automatycznie. Dziękujemy za oczekiwanie!</div>
       </div>
-      
-      <div class="intro-footer">Dziękujemy za dołączenie do transmisji!</div>
     </div>
   </div>
 
   <script>
+    let countdownInterval;
+    function startCountdown(targetTime) {
+      clearInterval(countdownInterval);
+      function update() {
+        const now = new Date();
+        const diff = Math.floor((targetTime - now) / 1000);
+        if (diff <= 0) { clearInterval(countdownInterval); return; }
+        const m = Math.floor(diff / 60);
+        const s = diff % 60;
+        document.getElementById('countdown-minutes').textContent = String(m).padStart(2,'0');
+        document.getElementById('countdown-seconds').textContent = String(s).padStart(2,'0');
+      }
+      update();
+      countdownInterval = setInterval(update, 1000);
+    }
+
     async function loadIntroData() {
       try {
-        const introResponse = await fetch('/initial-intro-settings'); 
-        if (!introResponse.ok) {
-            throw new Error(`Błąd HTTP (intro settings): ${introResponse.status}`);
+        const res = await fetch('/initial-intro-settings');
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        // Titles
+        document.getElementById('intro-main-title').textContent = data.introMainTitle || 'Już wkrótce';
+        document.getElementById('intro-secondary-title').textContent = data.introSecondaryTitle || 'Transmisja na żywo';
+        // Teams & logos
+        document.getElementById('home-team-full-name').textContent = data.introHomeTeamFullName || 'GOSPODARZE';
+        document.getElementById('away-team-full-name').textContent = data.introAwayTeamFullName || 'GOŚCIE';
+        document.getElementById('home-logo-img').src = data.homeLogoPath ? data.homeLogoPath + '?t='+Date.now() : '/images/agricola_logo.png';
+        document.getElementById('away-logo-img').src = data.awayLogoPath ? data.awayLogoPath + '?t='+Date.now() : '/images/opponent_logo.png';
+        // Match details
+        if (data.introMatchDate) {
+          const mdEl = document.getElementById('match-date-display');
+          mdEl.textContent = new Date(data.introMatchDate + 'T00:00:00').toLocaleDateString('pl-PL', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
         }
-        const introData = await introResponse.json();
-        
-        document.getElementById('home-team-full-name').textContent = introData.introHomeTeamFullName || 'GOSPODARZE';
-        document.getElementById('away-team-full-name').textContent = introData.introAwayTeamFullName || 'GOŚCIE';
-        
-        const homeLogoEl = document.getElementById('home-logo-img');
-        if (introData.homeLogoPath) {
-            homeLogoEl.src = introData.homeLogoPath + '?t=' + new Date().getTime();
-        } else {
-            homeLogoEl.src = '/images/agricola_logo.png';
-            homeLogoEl.alt = 'Logo gospodarzy (domyślne)';
+        if (data.introMatchTime) {
+          document.getElementById('match-time-display').textContent = data.introMatchTime;
         }
-
-        const awayLogoEl = document.getElementById('away-logo-img');
-        if (introData.awayLogoPath) {
-            awayLogoEl.src = introData.awayLogoPath + '?t=' + new Date().getTime();
-        } else {
-            awayLogoEl.src = '/images/opponent_logo.png';
-            awayLogoEl.alt = 'Logo gości (domyślne)';
+        document.getElementById('match-location-display').textContent = data.introMatchLocation || 'Miejsce nieustalone';
+        // Calculate countdown target
+        if (data.introMatchDate && data.introMatchTime) {
+          const [h,m] = data.introMatchTime.split(':');
+          const target = new Date(data.introMatchDate + 'T' + data.introMatchTime + ':00');
+          startCountdown(target);
         }
-        
-        // Aktualizacja danych meczu
-        const matchDateDisplay = document.getElementById('match-date-display');
-        if (introData.introMatchDate) {
-            try {
-                 // Dodajemy 'T00:00:00' aby uniknąć problemów ze strefą czasową przy parsowaniu tylko daty
-                matchDateDisplay.textContent = new Date(introData.introMatchDate + 'T00:00:00').toLocaleDateString('pl-PL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            } catch (e) {
-                console.warn("Nieprawidłowy format daty:", introData.introMatchDate, e);
-                matchDateDisplay.textContent = introData.introMatchDate; // Pokaż surową datę, jeśli parsowanie zawiedzie
-            }
-        } else {
-            matchDateDisplay.textContent = 'Data nieustalona';
-        }
-        document.getElementById('match-time-display').textContent = introData.introMatchTime || 'Godzina nieustalona';
-        document.getElementById('match-location-display').textContent = introData.introMatchLocation || 'Miejsce nieustalone';
-
-        // Pobieranie kolorów i tła ze scorebug-data dla spójności
+        // Scorebug
         try {
-            const scorebugResponse = await fetch('/scorebug-data');
-            if (!scorebugResponse.ok) {
-                 throw new Error(`Błąd HTTP (scorebug data): ${scorebugResponse.status}`);
-            }
-            const scorebugData = await scorebugResponse.json();
-
-            document.getElementById('home-color-bar').style.backgroundColor = scorebugData.homeColor || '#C8102E';
-            document.getElementById('away-color-bar').style.backgroundColor = scorebugData.awayColor || '#1B449C';
-            
-            const introContent = document.querySelector('.intro-content');
-            if (scorebugData.teamBackground) {
-                let bgColor = scorebugData.teamBackground;
-                if (bgColor.startsWith('#') && (bgColor.length === 7 || bgColor.length === 4)) { // Sprawdzenie czy to HEX
-                    // Dodanie przezroczystości (np. 80% = cc)
-                    bgColor = bgColor.length === 7 ? bgColor + 'cc' : '#' + bgColor[1]+bgColor[1]+bgColor[2]+bgColor[2]+bgColor[3]+bgColor[3] + 'cc';
-                } else if (bgColor.startsWith('rgb')) { // Jeśli to rgb lub rgba, próbujemy dodać alpha
-                    bgColor = bgColor.replace('rgb(', 'rgba(').replace(')', ', 0.8)');
-                }
-                introContent.style.backgroundColor = bgColor;
-            } else {
-                 introContent.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'; // Domyślne jeśli brak
-            }
-
-        } catch (scorebugError) {
-            console.error('Błąd pobierania danych scorebuga dla kolorów/tła intro:', scorebugError);
-            // Ustaw domyślne kolory, jeśli nie udało się pobrać
-            document.getElementById('home-color-bar').style.backgroundColor = '#C8102E';
-            document.getElementById('away-color-bar').style.backgroundColor = '#1B449C';
-            document.querySelector('.intro-content').style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        }
-        
-      } catch (error) {
-        console.error('Błąd pobierania danych dla Intro:', error);
-        document.getElementById('home-team-full-name').textContent = 'GOSPODARZE';
-        document.getElementById('away-team-full-name').textContent = 'GOŚCIE';
-        document.getElementById('match-date-display').textContent = 'Data nieustalona';
-        document.getElementById('match-time-display').textContent = 'Godzina nieustalona';
-        document.getElementById('match-location-display').textContent = 'Miejsce nieustalone';
-        // Domyślne loga, jeśli błąd
-        document.getElementById('home-logo-img').src = '/images/agricola_logo.png';
-        document.getElementById('away-logo-img').src = '/images/opponent_logo.png';
+          const sb = await fetch('/scorebug-data');
+          if (sb.ok) {
+            const sbd = await sb.json();
+            document.getElementById('home-color-bar').style.backgroundColor = sbd.homeColor || '#C8102E';
+            document.getElementById('away-color-bar').style.backgroundColor = sbd.awayColor || '#1B449C';
+            const content = document.querySelector('.intro-content');
+            let bg = sbd.teamBackground || 'rgba(0,0,0,0.7)';
+            if (/^#([A-Fa-f0-9]{3,6})$/.test(bg)) bg += 'cc';
+            else if (/^rgb/.test(bg)) bg = bg.replace(')', ',0.8)');
+            content.style.backgroundColor = bg;
+          }
+        } catch {}
+      } catch (e) {
+        console.error('Error loading intro', e);
       }
     }
-    
-    loadIntroData();
-    setInterval(loadIntroData, 10000); // Odświeżaj dane co 10 sekund
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadIntroData();
+      setInterval(loadIntroData, 10000);
+    });
   </script>
 </body>
 </html>

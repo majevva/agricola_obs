@@ -1,9 +1,9 @@
 {
   "scorebug": {
-    "homeName": "DOM",
-    "awayName": "GOŚĆ",
-    "homeColor": "#C8102E",
-    "awayColor": "#1B449C",
+    "homeName": "AGR",
+    "awayName": "XXX",
+    "homeColor": "#c8102e",
+    "awayColor": "#d1e0ff",
     "teamBackground": "#34003a",
     "goalsBackground": "#00fc8a",
     "timeBackground": "#ffffff",
@@ -12,12 +12,12 @@
     "timeTextColor": "#34003a"
   },
   "introSettings": {
-    "introHomeTeamFullName": "Domyślni Gospodarze Pełna Nazwa",
-    "introAwayTeamFullName": "Domyślni Goście Pełna Nazwa",
-    "introMatchDate": "",
-    "introMatchTime": "",
-    "introMatchLocation": "Domyślne Miejsce",
+    "introHomeTeamFullName": "AGRICOLA MIERKI",
+    "introAwayTeamFullName": "OMULEC WIELBARK",
+    "introMatchDate": "2025-05-31",
+    "introMatchTime": "16:00",
+    "introMatchLocation": "Boisko w Wielbarku",
     "homeLogoPath": "/images/agricola_logo.png",
-    "awayLogoPath": "/images/opponent_logo.png"
+    "awayLogoPath": "/images/opponent_logo.jpg"
   }
 }

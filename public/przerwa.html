@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Przerwa w Meczu - Agricola</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    
+    @keyframes textGlow {
+      0% { text-shadow: 0 0 10px rgba(255,255,255,0.5), 0 0 15px rgba(255,255,255,0.3); }
+      50% { text-shadow: 0 0 20px rgba(255,255,255,0.9), 0 0 30px rgba(255,255,255,0.5); }
+      100% { text-shadow: 0 0 10px rgba(255,255,255,0.5), 0 0 15px rgba(255,255,255,0.3); }
+    }
+
+    @keyframes pulseScore {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+    
+    .gradient-bg {
+      background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #1a2a3a); /* Dodano ciemniejszy odcień dla urozmaicenia */
+      background-size: 400% 400%;
+      animation: gradientBG 18s ease infinite;
+    }
+    
+    .animate-glow {
+      animation: textGlow 3s infinite;
+    }
+
+    .team-color-bar {
+      width: 70%;
+      height: 0.6rem;
+      border-radius: 0.3rem;
+      margin-top: 0.75rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    .score-display {
+        animation: pulseScore 2.5s infinite ease-in-out;
+    }
+
+    /* Styl dla zegara odliczającego */
+    #halftime-countdown {
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 5rem; /* Większy zegar */
+        color: #facc15; /* yellow-400 dla wyróżnienia */
+        text-shadow: 0 0 10px rgba(250, 204, 21, 0.5), 0 0 15px rgba(0,0,0,0.5);
+        letter-spacing: 0.1em;
+    }
+    .countdown-label {
+        font-size: 1.5rem;
+        color: rgba(255,255,255,0.8);
+        margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body class="gradient-bg h-screen w-full overflow-hidden flex items-center justify-center font-['Montserrat'] text-white">
+  <div class="absolute inset-0 bg-black bg-opacity-60"></div>
+  
+  <div class="relative z-10 w-full max-w-6xl px-6 md:px-8 text-center">
+    
+    <div class="mb-10">
+      <h1 class="text-5xl md:text-7xl font-bold font-['Bebas_Neue'] tracking-wider animate-glow">PRZERWA W MECZU</h1>
+    </div>
+    
+    <div id="score-box-halftime" class="bg-black bg-opacity-50 rounded-xl p-6 md:p-8 mb-10 w-full max-w-4xl mx-auto shadow-xl">
+      <div class="flex flex-col md:flex-row items-center justify-around">
+        
+        <div class="flex flex-col items-center text-center mb-8 md:mb-0 md:w-2/5">
+          <div class="team-logo w-24 h-24 md:w-28 md:h-28 bg-white bg-opacity-10 rounded-full flex items-center justify-center mb-3 border-2 border-transparent" id="home-logo-container-halftime">
+            <img src="/images/agricola_logo.png" alt="Logo Gospodarzy" id="home-logo-img-halftime" class="w-20 h-20 md:w-24 md:h-24 object-contain rounded-full">
+          </div>
+          <h2 class="text-2xl md:text-3xl font-bold font-['Bebas_Neue'] tracking-wider" id="home-team-full-name-halftime">GOSPODARZE</h2>
+          <div class="text-4xl md:text-5xl font-bold mt-1 score-display" id="home-score-display-halftime">0</div>
+          <div class="team-color-bar" id="home-color-bar-halftime"></div> 
+        </div>
+        
+        <div class="mx-4 md:mx-6 mb-6 md:mb-0 text-center self-center">
+          <div class="text-4xl md:text-5xl font-bold font-['Bebas_Neue']">- VS -</div>
+        </div>
+        
+        <div class="flex flex-col items-center text-center md:w-2/5">
+          <div class="team-logo w-24 h-24 md:w-28 md:h-28 bg-white bg-opacity-10 rounded-full flex items-center justify-center mb-3 border-2 border-transparent" id="away-logo-container-halftime">
+            <img src="/images/opponent_logo.png" alt="Logo Gości" id="away-logo-img-halftime" class="w-20 h-20 md:w-24 md:h-24 object-contain rounded-full">
+          </div>
+          <h2 class="text-2xl md:text-3xl font-bold font-['Bebas_Neue'] tracking-wider" id="away-team-full-name-halftime">GOŚCIE</h2>
+          <div class="text-4xl md:text-5xl font-bold mt-1 score-display" id="away-score-display-halftime">0</div>
+          <div class="team-color-bar" id="away-color-bar-halftime"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="absolute bottom-15 left-0 right-0 text-center">
+        <p class="text-lg text-slate-300 font-medium">Wkrótce rozpocznie się druga połowa!</p>
+         </div>
+
+  </div>
+
+  <script>
+    const HALFTIME_DURATION_SECONDS = 15 * 60; // 15 minut
+
+    async function loadHalfTimeData() {
+      try {
+        const [introResponse, scorebugResponse] = await Promise.all([
+          fetch('/initial-intro-settings'),
+          fetch('/scorebug-data')
+        ]);
+
+        if (!introResponse.ok) throw new Error(`Błąd /initial-intro-settings: ${introResponse.status}`);
+        if (!scorebugResponse.ok) throw new Error(`Błąd /scorebug-data: ${scorebugResponse.status}`);
+
+        const introData = await introResponse.json();
+        const scorebugData = await scorebugResponse.json();
+
+        // Aktualizacja nazw drużyn i logotypów (z introData)
+        document.getElementById('home-team-full-name-halftime').textContent = introData.introHomeTeamFullName || 'GOSPODARZE';
+        document.getElementById('away-team-full-name-halftime').textContent = introData.introAwayTeamFullName || 'GOŚCIE';
+        
+        const timestamp = Date.now();
+        document.getElementById('home-logo-img-halftime').src = introData.homeLogoPath ? `${introData.homeLogoPath}?t=${timestamp}` : '/images/agricola_logo.png';
+        document.getElementById('away-logo-img-halftime').src = introData.awayLogoPath ? `${introData.awayLogoPath}?t=${timestamp}` : '/images/opponent_logo.png';
+
+        // Aktualizacja wyników (z scorebugData)
+        document.getElementById('home-score-display-halftime').textContent = scorebugData.homeScore !== undefined ? scorebugData.homeScore : '0';
+        document.getElementById('away-score-display-halftime').textContent = scorebugData.awayScore !== undefined ? scorebugData.awayScore : '0';
+        
+        // Aktualizacja kolorów drużyn (z scorebugData lub introData, tutaj scorebugData ma priorytet jeśli dostępne)
+        const homeColor = scorebugData.homeColor || introData.homeColor || '#C8102E';
+        const awayColor = scorebugData.awayColor || introData.awayColor || '#1B449C';
+        document.getElementById('home-color-bar-halftime').style.backgroundColor = homeColor;
+        document.getElementById('away-color-bar-halftime').style.backgroundColor = awayColor;
+
+        // Opcjonalnie: tło dla score-boxa (może być z introData lub stałe)
+        const scoreBoxBg = introData.teamBackground || 'rgba(0,0,0,0.5)'; // Domyślne, jeśli brak
+        if (introData.teamBackground) {
+            let r = 0, g = 0, b = 0;
+            if (introData.teamBackground.length === 7) {
+                r = parseInt(introData.teamBackground.substring(1, 3), 16);
+                g = parseInt(introData.teamBackground.substring(3, 5), 16);
+                b = parseInt(introData.teamBackground.substring(5, 7), 16);
+                document.getElementById('score-box-halftime').style.backgroundColor = `rgba(${r},${g},${b},0.5)`;
+            } else if (introData.teamBackground.length === 4) {
+                r = parseInt(introData.teamBackground.substring(1, 2).repeat(2), 16);
+                g = parseInt(introData.teamBackground.substring(2, 3).repeat(2), 16);
+                b = parseInt(introData.teamBackground.substring(3, 4).repeat(2), 16);
+                document.getElementById('score-box-halftime').style.backgroundColor = `rgba(${r},${g},${b},0.5)`;
+            } else {
+                 document.getElementById('score-box-halftime').style.backgroundColor = 'rgba(0,0,0,0.5)';
+            }
+        } else {
+            document.getElementById('score-box-halftime').style.backgroundColor = 'rgba(0,0,0,0.5)';
+        }
+
+
+      } catch (error) {
+        console.error('Błąd ładowania danych na przerwę:', error);
+        // Ustaw domyślne wartości w przypadku błędu
+        document.getElementById('home-team-full-name-halftime').textContent = 'GOSPODARZE';
+        document.getElementById('away-team-full-name-halftime').textContent = 'GOŚCIE';
+        document.getElementById('home-score-display-halftime').textContent = '0';
+        document.getElementById('away-score-display-halftime').textContent = '0';
+        document.getElementById('home-color-bar-halftime').style.backgroundColor = '#C8102E';
+        document.getElementById('away-color-bar-halftime').style.backgroundColor = '#1B449C';
+      }
+    }
+
+    function startHalfTimeCountdown(durationSeconds) {
+      let timer = durationSeconds;
+      const countdownElement = document.getElementById('halftime-countdown');
+
+      const intervalId = setInterval(() => {
+        const minutes = Math.floor(timer / 60);
+        const seconds = timer % 60;
+
+        countdownElement.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+        if (--timer < 0) {
+          clearInterval(intervalId);
+          countdownElement.textContent = "00:00";
+          // Można dodać komunikat o końcu przerwy lub automatyczne przełączenie sceny
+          const labelElement = document.querySelector('.countdown-label');
+          if(labelElement) labelElement.textContent = "Przerwa zakończona!";
+        }
+      }, 1000);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadHalfTimeData();
+      startHalfTimeCountdown(HALFTIME_DURATION_SECONDS);
+      
+      setInterval(loadHalfTimeData, 10000); // Okresowe odświeżanie danych meczu (np. co 10 sekund)
+    });
+  </script>
+</body>
+</html>

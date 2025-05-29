@@ -1,8 +1,8 @@
 {
     "port": 3000,
     "teams": {
-        "home": "json/agricola_players.json",
-        "away": "json/away_players.json",
+        "home": "public/json/agricola_players.json",
+        "away": "public/json/away_players.json",
         "defaultHomeName": "AGRICOLA",
         "defaultAwayName": "PRZECIWNIK"
     },
