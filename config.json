@@ -1,0 +1,12 @@
+{
+    "port": 3000,
+    "teams": {
+        "home": "json/agricola_players.json",
+        "away": "json/away_players.json"
+    },
+    "obs": {
+        "host": "10.21.96.130",
+        "port": 4445,
+        "password": ""
+    }
+}

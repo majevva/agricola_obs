@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logo Scroller dla OBS</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+  <style>
+    body, html {
+      overflow: hidden; /* Zapobiega paskom przewijania w OBS */
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      /* Tło domyślnie będzie przezroczyste w OBS. 
+         Jeśli chcesz stałe tło, możesz je tu ustawić, np.:
+         background-color: #222222; 
+      */
+    }
+    
+    /* Główny kontener - flex column, aby slider zajmował dostępną przestrzeń */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh; /* Slider wypełni całą wysokość źródła w OBS */
+    }
+    
+    /* Slider zajmuje dostępną przestrzeń */
+    .logo-scroller {
+      flex: 1;
+      display: flex;
+      align-items: center; /* Loga będą wyśrodkowane w pionie */
+      overflow: hidden; /* Kluczowe dla efektu przewijania */
+    }
+    
+    .logo-scroller-content {
+      width: 100%;
+    }
+
+    .logo-scroller-items {
+      /* Ten kontener nie potrzebuje specjalnych styli poza tymi nadanymi przez GSAP */
+    }
+    
+    .logo-scroller-row {
+      display: flex; /* Umożliwia ułożenie logotypów w rzędzie */
+      gap: 60px; /* Odstęp między logotypami, możesz dostosować */
+    }
+
+.logo-scroller-item {
+  display: flex;
+  flex-direction: column; /* Obrazek (w kontenerze) nad tekstem */
+  align-items: center;   /* Wyśrodkowanie w poziomie */
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* NOWY STYL dla kontenera obrazka */
+.logo-image-container {
+  height: 80px;   /* STAŁA wysokość kontenera na logo - dostosuj wg potrzeb */
+  width: 170px;   /* STAŁA szerokość kontenera na logo - dostosuj wg potrzeb */
+  display: flex;  /* Umożliwia wyśrodkowanie obrazka wewnątrz */
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px; /* Odstęp między kontenerem logo a nazwą sponsora */
+  /* background-color: rgba(0,0,0,0.05); /* Odkomentuj, aby zobaczyć granice kontenera */
+}
+
+/* ZMODYFIKOWANY STYL dla samego obrazka <img> */
+.logo-image-container img {
+  display: block;
+  max-height: 100%; /* Obrazek zajmie max 100% wysokości kontenera (czyli 80px) */
+  max-width: 100%;  /* Obrazek zajmie max 100% szerokości kontenera (czyli 170px) */
+  object-fit: contain; /* Kluczowe: skaluje obrazek, aby zmieścił się w kontenerze, zachowując proporcje */
+}
+
+.sponsor-name {
+  font-family: Arial, sans-serif;
+  font-size: 15px; /* Możesz zmniejszyć, jeśli nazwy są długie */
+  color: #FFFFFF;
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1.2; /* Zmniejszona interlinia dla ciaśniejszego tekstu */
+  /* Aby nazwa sponsora miała tę samą szerokość co kontener logo (opcjonalnie): */
+  /* width: 170px; */
+  /* box-sizing: border-box; */ /* Potrzebne, jeśli ustawiasz width i padding */
+}
+  </style>
+</head>
+<body>
+  <section class="logo-scroller">
+    <div class="logo-scroller-content">
+      <div class="logo-scroller-items" role="marquee">
+        <div class="logo-scroller-row" id="sponsors-container">
+          </div>
+      </div>
+    </div>
+  </section>
+  
+  <script>
+    // Tablica sponsorów - łatwa do edycji
+    const sponsors = [
+      {
+        id: "sponsor_1",
+        name: "JOANNA ROSTKOWSKA",
+        image: "sponsorzy/sponsor1.png"
+      },
+      {
+        id: "sponsor_2",
+        name: "MĘSKA STREFA<br>KRZYSZTOF OLCZYK",
+        image: "sponsorzy/sponsor2.png"
+      },
+      {
+        id: "sponsor_3",
+        name: "ROZBICCY UBEZPIECZENIA",
+        image: "sponsorzy/sponsor6.png"
+      },
+      {
+        id: "sponsor_4",
+        name: "BANK SPÓŁDZIELCZY<br>W OLSZTYNKU",
+        image: "sponsorzy/sponsor4.png"
+      },
+      {
+        id: "sponsor_5",
+        name: "FIEGE",
+        image: "sponsorzy/sponsor8.png"
+      },
+      {
+        id: "sponsor_6",
+        name: "FLESZSTUDIO",
+        image: "sponsorzy/sponsor3.png"
+      },
+      {
+        id: "sponsor_7",
+        name: "MIASTO OLSZTYNEK",
+        image: "sponsorzy/sponsor7.png"
+      }
+      // Dodaj nowych sponsorów tutaj, np:
+      // {
+      //   id: "sponsor_8",
+      //   name: "Nowy Sponsor<br>z Długą Nazwą",
+      //   image: "sponsorzy/nowy_sponsor.png"
+      // },
+    ];
+
+    // Funkcja do generowania HTML dla sponsorów
+    function generateSponsorsHTML() {
+      const container = document.getElementById('sponsors-container');
+      container.innerHTML = ''; // Wyczyść kontener
+      
+      sponsors.forEach(sponsor => {
+        const sponsorElement = document.createElement('div');
+        sponsorElement.className = 'logo-scroller-item';
+        sponsorElement.innerHTML = `
+          <span>
+            <img src="${sponsor.image}" alt="${sponsor.name}"> 
+            <div class="sponsor-name">${sponsor.name}</div>
+          </span>
+        `;
+        // Używamy sponsor.name dla alt textu, co jest bardziej semantyczne
+        container.appendChild(sponsorElement);
+      });
+    }
+
+    let logoScrollers = {}; 
+    
+    // Funkcja do inicjalizacji slidera logo
+    function initiateLogoScroller(container = document) {
+      const rows = container.querySelectorAll(".logo-scroller-row");
+
+      rows.forEach(row => {
+        if (logoScrollers[row]) {
+          logoScrollers[row].kill();
+          delete logoScrollers[row];
+        }
+
+        // Usuń istniejące klony przed ponowną inicjalizacją
+        if (row.dataset.cloned) {
+            const originalItemsCount = sponsors.length; // Lub inny sposób na określenie liczby oryginalnych itemów
+            while (row.children.length > originalItemsCount) {
+                row.removeChild(row.lastChild);
+            }
+            delete row.dataset.cloned; // Reset flagi
+        }
+        
+        const rowItems = Array.from(row.children);
+        if (rowItems.length === 0) return; // Nie rób nic, jeśli nie ma sponsorów
+
+        let originalRowWidth = 0;
+        rowItems.forEach(item => {
+            // Aby poprawnie obliczyć szerokość, upewnijmy się, że elementy są widoczne
+            item.style.display = 'flex'; // lub 'block' w zależności od styli
+            originalRowWidth += item.offsetWidth;
+            const style = window.getComputedStyle(item);
+            originalRowWidth += parseInt(style.marginLeft) + parseInt(style.marginRight);
+        });
+        
+        // Dodajemy 'gap' do obliczeń, jeśli jest więcej niż jeden element
+        if (rowItems.length > 1) {
+            const gapStyle = window.getComputedStyle(row).gap;
+            const gapValue = parseInt(gapStyle);
+            if (!isNaN(gapValue)) {
+                 originalRowWidth += gapValue * (rowItems.length -1) ; // Błąd w logice: gap jest między itemami, nie w itemach.
+                                                                    // szerokość itemów + (N-1)*gap
+            }
+        }
+        // Prawidłowe obliczenie szerokości oryginalnych itemów + odstępów między nimi
+        let calculatedOriginalWidth = 0;
+        const gapValue = parseFloat(window.getComputedStyle(row).gap) || 0;
+        for(let i=0; i < rowItems.length; i++) {
+            calculatedOriginalWidth += rowItems[i].offsetWidth;
+            if (i < rowItems.length - 1) {
+                calculatedOriginalWidth += gapValue;
+            }
+        }
+        originalRowWidth = calculatedOriginalWidth;
+
+
+        const containerWidth = row.parentElement.offsetWidth; // Szerokość .logo-scroller-items lub .logo-scroller-content
+
+        // Klonuj loga, aż całkowita szerokość będzie co najmniej dwukrotnie większa od szerokości kontenera LUB szerokości oryginalnych itemów
+        // aby zapewnić wystarczająco dużo miejsca na płynne przewijanie
+        let currentTotalWidth = originalRowWidth;
+        
+        // Klonowanie jest potrzebne tylko jeśli oryginalna szerokość jest mniejsza niż kontener + trochę zapasu
+        if (originalRowWidth < containerWidth * 1.5 && originalRowWidth > 0) { // Dodano warunek originalRowWidth > 0
+            while (currentTotalWidth < Math.max(containerWidth * 2, originalRowWidth * 2)) {
+                 if (rowItems.length === 0) break; // Zabezpieczenie przed nieskończoną pętlą
+                rowItems.forEach(item => {
+                    const clone = item.cloneNode(true);
+                    row.appendChild(clone);
+                });
+                currentTotalWidth += originalRowWidth + (rowItems.length > 0 ? gapValue : 0) ; // Dodaj szerokość sklonowanego bloku + jeden gap
+                                                                                           // Powinno być: currentTotalWidth += originalRowWidth; (plus gapy jeśli trzeba)
+                                                                                           // Po prostu aktualizujmy szerokość całego row.scrollWidth
+                 currentTotalWidth = row.scrollWidth; // Bezpieczniej jest pobrać aktualną szerokość po dodaniu klonów
+            }
+        }
+        row.dataset.cloned = "true";
+
+
+        let finalRowWidth = row.scrollWidth; // Całkowita szerokość (oryginały + klony)
+        
+        gsap.set(row, { x: 0 }); // Resetuj pozycję
+
+        if (finalRowWidth === 0) return; // Nie animuj, jeśli szerokość to 0
+
+        // Oblicz prędkość dynamicznie
+        let baseSpeed = 60; // Wolniejsza prędkość dla lepszej widoczności (sekundy na szerokość kontenera)
+                        // Możesz zmienić tę wartość: mniejsza = szybsza, większa = wolniejsza
+        let duration = (finalRowWidth / 2) / 100 ; // np. 100px na sekundę. finalRowWidth/2 to dystans do przewinięcia
+                                                // Zmieńmy na bardziej przewidywalną prędkość
+        duration = (finalRowWidth / 2) / (baseSpeed * (finalRowWidth / containerWidth)); // To jest zbyt skomplikowane
+        
+        // Prostsza kalkulacja czasu trwania
+        // Chcemy, aby np. 100px przewijało się w 1 sekundę.
+        // Dystans do przewinięcia to 'finalRowWidth / 2' (bo mamy oryginały i klony)
+        // Czas = Dystans / Prędkość (w px/s)
+        const scrollDistance = finalRowWidth / (row.children.length / sponsors.length); // Długość jednego zestawu sponsorów
+        const pixelsPerSecond = 50; // Dostosuj tę wartość: większa = szybszy scroll
+        duration = scrollDistance / pixelsPerSecond;
+        
+        if(duration <=0) duration = 30; // Domyślny czas jakby coś poszło nie tak
+
+        const tl = gsap.timeline({ repeat: -1, ease: "none" });
+
+        tl.to(row, {
+          x: `-${scrollDistance}px`, // Przesuń o szerokość oryginalnych elementów
+          duration: duration,
+          ease: "none",
+        });
+        // Usunięto onComplete, bo GSAP z repeat: -1 powinien płynnie zapętlać to(), gdy animacja jest do wartości względnej lub xPercent
+
+        logoScrollers[row] = tl;
+      });
+    }
+    
+    // Inicjalizuj po załadowaniu strony
+    window.addEventListener('load', function() {
+      generateSponsorsHTML();
+      initiateLogoScroller(document);
+    });
+
+    // Reinicjalizuj przy zmianie rozmiaru okna
+    // (w OBS to się przyda przy zmianie rozmiaru źródła przeglądarki)
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            // Musimy najpierw wygenerować HTML na nowo, aby mieć poprawne wymiary oryginalnych elementów
+            // Ale generateSponsorsHTML() czyści i tworzy na nowo. Jeśli chcemy tylko przeliczyć, to może być problematyczne
+            // Bezpieczniej jest pełne przeładowanie logiki dla resize.
+            generateSponsorsHTML(); // Ponownie generuje, aby GSAP mógł poprawnie obliczyć szerokości
+            initiateLogoScroller(document);
+        }, 250); // Debounce, aby nie wywoływać zbyt często
+    });
+  </script>
+</body>
+</html>

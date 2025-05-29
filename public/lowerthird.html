@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lower Third FX</title>
+  <style>
+    /* Twoje style CSS pozostają bez zmian */
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@300;400;700&display=swap');
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      font-family: 'Roboto', sans-serif;
+      overflow: hidden;
+    }
+
+    .lower-third-container {
+      position: fixed;
+      bottom: 60px;
+      left: 50px;
+      width: 460px;
+      height: 140px;
+    }
+
+    .lower-third {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: #111;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      transform: translateX(-600px);
+      opacity: 0;
+      transition: all 0.6s ease-in-out;
+    }
+
+    .lower-third.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .upper-part {
+      z-index: 1;
+      display: flex;
+      padding: 15px 20px 0;
+      align-items: center;
+    }
+
+    .team-logo {
+      width: 55px;
+      height: 55px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-right: 15px;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+
+    .team-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .player-info {
+      flex: 1;
+    }
+
+    .player-lastname {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      text-transform: uppercase;
+      color: white;
+      margin: 0;
+      line-height: 1;
+    }
+
+    .player-firstname {
+      font-size: 16px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.75);
+      margin: 4px 0 0;
+      text-transform: uppercase;
+    }
+
+    .notification-tag {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      background-color: #333;
+      color: white;
+    }
+
+    .bar {
+      z-index: 1;
+      height: 8px;
+      width: 100%;
+      background: #333;
+    }
+
+    .bar.goal { background: linear-gradient(to right, #00c853, #b2ff59); }
+    .bar.change { background: linear-gradient(to right, #29b6f6, #00e5ff); }
+    .bar.injury { background: linear-gradient(to right, #ff6f91, #ff9a9e); }
+    .bar.red-card { background: linear-gradient(to right, #ff1744, #d50000); }
+    .bar.yellow-card { background: linear-gradient(to right, #ffeb3b, #fbc02d); }
+
+    /* BACKGROUND FX CLASSES */
+    .background-goal {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/1041/1041916.png');
+      background-size: 40px;
+      background-repeat: repeat;
+      animation: moveBg 3s linear infinite;
+      opacity: 0.1;
+    }
+
+    .background-injury {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/2913/2913990.png');
+      background-size: 30px;
+      background-repeat: repeat;
+      animation: moveBg 2s linear infinite;
+      opacity: 0.1;
+    }
+
+    .background-red-card {
+      background-color: rgba(255, 0, 0, 0.2);
+      animation: pulseRed 1s ease-in-out infinite;
+    }
+
+    .background-yellow-card {
+      background-color: rgba(255, 255, 0, 0.15);
+      animation: pulseYellow 1.5s ease-in-out infinite;
+    }
+
+    .background-change {
+      background: linear-gradient(135deg, rgba(0,255,255,0.05), rgba(0,128,255,0.1));
+      animation: flowGradient 3s ease-in-out infinite;
+    }
+
+    @keyframes moveBg {
+      from { background-position: 0 0; }
+      to { background-position: 100% 100%; }
+    }
+
+    @keyframes pulseRed {
+      0%, 100% { opacity: 0.1; }
+      50% { opacity: 0.25; }
+    }
+
+    @keyframes pulseYellow {
+      0%, 100% { opacity: 0.1; }
+      50% { opacity: 0.3; }
+    }
+
+    @keyframes flowGradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="lower-third-container">
+    <div class="lower-third" id="lowerThird">
+      <div class="overlay" id="overlayFx"></div>
+      <div class="upper-part" id="upperPart">
+        <div class="team-logo"><img id="teamLogo" src="" alt="Logo drużyny" /></div>
+        <div class="player-info" id="playerInfo">
+          <p class="player-lastname" id="playerLastname"></p>
+          <p class="player-firstname" id="playerFirstname"></p>
+        </div>
+        <div class="player-info" id="playerInfoIn" style="display:none; margin-left:24px;">
+          <p class="player-lastname" id="playerLastnameIn" style="color:#29b6f6;"></p>
+          <p class="player-firstname" id="playerFirstnameIn" style="color:#b2ebf2;"></p>
+        </div>
+        <div class="notification-tag" id="notificationTypeTag">INFO</div>
+      </div>
+      <div class="bar" id="bottomBar"></div>
+    </div>
+  </div>
+
+  <script>
+    let isAnimating = false;
+    const ANIMATION_SHOW_DURATION = 8000; // Czas wyświetlania belki w ms
+    const ANIMATION_TRANSITION_DURATION = 600; // Czas trwania przejścia CSS w ms
+
+    function renderLowerThird(data) {
+      if (isAnimating) return;
+      // Podstawowa walidacja danych wejściowych
+      if (!data || !data.timestamp || !data.type) {
+        console.warn('Otrzymano niekompletne dane do renderLowerThird:', data);
+        return;
+      }
+      // Dla niektórych typów playerOut może nie być obiektem (np. ogólna informacja)
+      // ale dla 'change' playerOut i playerIn są kluczowe
+      if (data.type === 'change' && (!data.playerOut || !data.playerIn)) {
+          console.warn('Brak danych playerOut lub playerIn dla typu "change":', data);
+          return;
+      }
+
+
+      isAnimating = true;
+
+      const lowerThird = document.getElementById('lowerThird');
+      const overlay = document.getElementById('overlayFx');
+      const teamLogoImg = document.getElementById('teamLogo'); // Zmieniono nazwę dla jasności
+      const playerFirstnameEl = document.getElementById('playerFirstname');
+      const playerLastnameEl = document.getElementById('playerLastname');
+      const notificationTypeEl = document.getElementById('notificationTypeTag'); // Zmieniono ID w HTML i tutaj
+      const bottomBar = document.getElementById('bottomBar');
+      const playerInfoInEl = document.getElementById('playerInfoIn');
+      const playerFirstnameInEl = document.getElementById('playerFirstnameIn');
+      const playerLastnameInEl = document.getElementById('playerLastnameIn');
+
+      const typeLabels = {
+        'goal': 'GOL',
+        'change': 'ZMIANA',
+        'injury': 'KONTUZJA',
+        'red-card': 'CZERWONA',
+        'yellow-card': 'ŻÓŁTA'
+      };
+
+      const bgClasses = [
+        'background-goal', 'background-injury',
+        'background-red-card', 'background-yellow-card',
+        'background-change'
+      ];
+      
+      // Resetowanie stanu przed nowym renderowaniem
+      bgClasses.forEach(cls => overlay.classList.remove(cls));
+      playerInfoInEl.style.display = 'none';
+      playerLastnameEl.textContent = '';
+      playerFirstnameEl.textContent = '';
+      playerLastnameInEl.textContent = '';
+      playerFirstnameInEl.textContent = '';
+      teamLogoImg.style.display = 'none'; // Domyślnie ukryj logo, pokażemy jeśli jest
+
+      // Obsługa danych zawodników
+      if (data.type === 'change' && data.playerIn && data.playerOut) {
+        // Zawodnik schodzący (playerOut)
+        if (typeof data.playerOut === 'object' && data.playerOut !== null) {
+          playerLastnameEl.textContent = data.playerOut.lastname || '';
+          playerFirstnameEl.textContent = data.playerOut.firstname || '';
+        } else if (typeof data.playerOut === 'string') { // Na wypadek, gdyby playerOut był stringiem
+          playerLastnameEl.textContent = data.playerOut;
+        }
+
+        // Zawodnik wchodzący (playerIn)
+        playerLastnameInEl.textContent = data.playerIn.lastname || '';
+        playerFirstnameInEl.textContent = data.playerIn.firstname || '';
+        playerInfoInEl.style.display = ''; // Pokaż blok zawodnika wchodzącego
+      } else if (data.playerOut) { // Dla innych typów (gol, kartka, kontuzja)
+        if (typeof data.playerOut === 'object' && data.playerOut !== null) {
+          playerLastnameEl.textContent = data.playerOut.lastname || '';
+          playerFirstnameEl.textContent = data.playerOut.firstname || '';
+        } else if (typeof data.playerOut === 'string') { // Jeśli playerOut to np. ogólna wiadomość
+          playerLastnameEl.textContent = data.playerOut;
+          // playerFirstnameEl pozostaje pusty
+        }
+      }
+      // Jeśli !data.playerOut (np. ogólne powiadomienie bez wskazania zawodnika), nazwiska pozostaną puste
+
+      notificationTypeEl.textContent = typeLabels[data.type] || data.type.toUpperCase() || 'INFO';
+      bottomBar.className = `bar ${data.type || ''}`.trim(); // Usuń nadmiarowe spacje jeśli data.type jest puste
+
+      if (data.type && bgClasses.some(cls => cls.endsWith(data.type))) {
+        overlay.classList.add(`background-${data.type}`);
+      }
+
+      if (data.team) {
+        teamLogoImg.src = data.team === 'home' ? 'home_logo.png' : 'away_logo.png';
+        teamLogoImg.style.display = ''; // Pokaż element img
+      }
+
+      lowerThird.classList.add('show');
+
+      setTimeout(() => {
+        lowerThird.classList.remove('show');
+        setTimeout(() => {
+          // Opcjonalne czyszczenie zawartości po animacji ukrywania
+          playerLastnameEl.textContent = '';
+          playerFirstnameEl.textContent = '';
+          playerLastnameInEl.textContent = '';
+          playerFirstnameInEl.textContent = '';
+          teamLogoImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // Przezroczysty placeholder
+          notificationTypeEl.textContent = 'INFO';
+          overlay.className = 'overlay';
+          bottomBar.className = 'bar';
+          playerInfoInEl.style.display = 'none';
+
+          isAnimating = false;
+        }, ANIMATION_TRANSITION_DURATION);
+      }, ANIMATION_SHOW_DURATION);
+
+      localStorage.setItem('lastShownTimestamp', data.timestamp.toString());
+    }
+
+    // Logo fallback
+    document.getElementById('teamLogo').addEventListener('error', function () {
+      this.style.display = 'none'; // Ukryj element img, jeśli obrazek się nie załaduje
+    });
+
+    // Polling for updates
+    function fetchData() {
+      fetch('/notification-data')
+        .then(res => {
+          if (!res.ok) {
+            // Można tu dodać logikę obsługi błędów HTTP, np. nie logować każdego błędu jeśli serwer jest chwilowo niedostępny
+            // console.warn(`Błąd HTTP przy pobieraniu danych: ${res.status}`);
+            return null; // Zwróć null, aby .then(data => ...) mógł to obsłużyć
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (!data) { // Jeśli fetch zwrócił null (np. z powodu błędu HTTP)
+            return;
+          }
+          const lastTimestamp = localStorage.getItem('lastShownTimestamp');
+          if (data.timestamp && data.timestamp.toString() !== lastTimestamp) {
+            renderLowerThird(data);
+          }
+        })
+        .catch(err => {
+            // Loguj tylko jeśli to nie jest błąd parsowania pustej odpowiedzi (co może się zdarzyć)
+            if (!(err instanceof SyntaxError && err.message.includes("Unexpected end of JSON input"))) {
+                 console.error("Błąd pobierania lub przetwarzania danych powiadomienia:", err);
+            }
+        });
+    }
+
+    setInterval(fetchData, 1000); // Ustaw interwał odpytywania
+    fetchData(); // Wywołaj raz przy starcie, aby załadować dane od razu
+  </script>
+</body>
+</html>

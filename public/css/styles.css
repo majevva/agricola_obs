@@ -1,0 +1,708 @@
+/* Add these theme-related styles at the top */
+:root {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --text-primary: #ffffff;
+  --border-color: #374151;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f3f4f6;
+  --bg-secondary: #ffffff;
+  --text-primary: #111827;
+  --border-color: #e5e7eb;
+}
+
+/* High contrast mode for outdoor visibility */
+.high-contrast-mode {
+  --bg-primary: #000000;
+  --bg-secondary: #222222;
+  --text-primary: #ffffff;
+  --border-color: #555555;
+  --accent-color: #ffff00;
+}
+
+body.high-contrast-mode button {
+  border: 2px solid var(--accent-color);
+}
+
+body.high-contrast-mode .timer-display {
+  background-color: #000;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Larger touch targets for mobile/outdoor use */
+@media (max-width: 768px) {
+  button, 
+  input[type="text"],
+  input[type="number"],
+  input[type="color"] {
+    min-height: 48px;
+  }
+  
+  .tab-button {
+    padding: 1rem 0.5rem;
+  }
+  
+  .scene-button {
+    font-size: 0.9rem;
+    padding: 0.75rem 0.5rem;
+  }
+  
+  body {
+    font-size: 16px;
+  }
+  
+  h1, h2, h3 {
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  }
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.bg-gray-800 {
+  background-color: var(--bg-secondary);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.bg-gray-700 {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: transparent;
+  overflow: hidden;
+}
+
+.sponsors-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 15px;
+  background-color: rgba(52, 0, 58, 0.8);
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  width: 100%; /* Rozciągnięcie na całą szerokość */
+  margin: 0 0 20px 0; /* Usunięcie marginesów bocznych */
+}
+
+.sponsors-header h2 {
+  margin: 0;
+  padding: 5px 0;
+  font-size: 32px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.logo-scroller {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.logo-scroller-content {
+  padding: 50px 0;
+}
+
+.logo-scroller-items {
+  margin: -30px 0;
+  overflow: hidden;
+}
+
+.logo-scroller-row {
+  display: flex;
+  height: 300px;
+  position: relative;
+  white-space: nowrap;
+  justify-content: space-around;
+  gap: 60px; /* Zwiększony odstęp między logo */
+  align-items: center;
+}
+
+.logo-scroller-item {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 180px; /* Większy minimalny rozmiar */
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+  border-radius: 15px;
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.5s ease;
+}
+
+/* Efekt podświetlenia dla aktywnego logo */
+.logo-scroller-item.active {
+  transform: scale(1.15);
+  background-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25), 
+              0 0 20px rgba(0, 252, 138, 0.4); /* Poświata w kolorze goalsBackground */
+  z-index: 10;
+}
+
+.logo-scroller-item span {
+  position: relative;
+  display: inline-block;
+  z-index: 1;
+}
+
+/* Logo */
+.logo-scroller-item span img {
+  max-width: 100%;
+  max-height: 120px; /* Większy rozmiar logo */
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.2));
+  transition: all 0.5s ease;
+}
+
+/* Efekt dla aktywnego logo */
+.logo-scroller-item.active span img {
+  filter: drop-shadow(0 8px 15px rgba(0, 0, 0, 0.3)) brightness(1.1);
+}
+
+/* Nazwa sponsora pod logo */
+.sponsor-name {
+  display: block;
+  margin-top: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background-color: rgba(52, 0, 58, 0.7);
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+/* Stopka */
+.sponsors-footer {
+  text-align: center;
+  margin-top: 30px;
+  padding: 15px;
+  background-color: rgba(52, 0, 58, 0.8);
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  width: 100%; /* Rozciągnięcie na całą szerokość */
+  margin: 20px 0 0 0; /* Usunięcie marginesów bocznych */
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  position: absolute; /* Pozycjonowanie absolutne */
+  bottom: 0; /* Przytwierdzenie do dołu */
+  left: 0; /* Przytwierdzenie do lewej krawędzi */
+}
+
+/* Animacja pulsowania dla aktywnego logo */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.logo-scroller-item.active {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+/* Responsywność */
+@media (min-width: 1024px) {
+  .logo-scroller-item span img {
+    max-height: 150px;
+  }
+}
+
+@media (max-width: 768px) {
+  .logo-scroller-item {
+    min-width: 150px;
+  }
+  .logo-scroller-item span img {
+    max-height: 100px;
+  }
+}
+/* Style dla timer-display */
+.timer-display {
+  font-size: 2.5em;
+  font-weight: bold;
+  text-align: center;
+  background-color: var(--bg-secondary);
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid #6b46c1;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Style dla kontroli mikrofonu */
+.mic-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#mic-device {
+  font-size: 1em;
+}
+
+/* Kompaktowy przycisk mikrofonu */
+#mic-toggle {
+  transition: background-color 0.3s, transform 0.1s;
+}
+
+#mic-toggle:active {
+  transform: scale(0.98);
+}
+
+#mic-toggle.muted {
+  background-color: #ef4444; /* Czerwony dla wyciszonego */
+}
+
+#mic-toggle:not(.muted) {
+  background-color: #10b981; /* Zielony dla włączonego */
+}
+
+/* Pulsating animation for unmuted mic */
+@keyframes mic-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+#mic-toggle:not(.muted) {
+  animation: mic-pulse 2s infinite;
+}
+
+/* High contrast mode adjustments */
+body.high-contrast-mode #mic-toggle.muted {
+  background-color: #ff0000;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+}
+
+body.high-contrast-mode #mic-toggle:not(.muted) {
+  background-color: #00ff00;
+  color: #000000;
+  border: 2px solid #ffffff;
+}
+
+/* Wynik meczu - style dla układu jeden pod drugim */
+.team-control {
+  transition: transform 0.1s, box-shadow 0.3s;
+  border: 1px solid var(--border-color);
+}
+
+.team-control:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.team-control:active {
+  transform: scale(0.99);
+}
+
+.score-display {
+  position: relative;
+}
+
+.score-display .indicators {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.indicator {
+  font-size: 1.8em;
+  transition: all 0.3s ease;
+}
+
+.indicator.goal {
+  color: #10b981; /* Zielony dla gola */
+}
+
+.indicator.yellow-card {
+  color: #facc15; /* Żółty dla żółtej kartki */
+}
+
+.indicator.red-card {
+  color: #ef4444; /* Czerwony dla czerwonej kartki */
+}
+
+/* High contrast mode adjustments */
+body.high-contrast-mode .team-control {
+  border: 2px solid var(--accent-color);
+}
+
+body.high-contrast-mode .indicator.goal {
+  color: #00ff00;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+body.high-contrast-mode .indicator.yellow-card {
+  color: #ffff00;
+  text-shadow: 0 0 5px rgba(255, 255, 0, 0.5);
+}
+
+body.high-contrast-mode .indicator.red-card {
+  color: #ff0000;
+  text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .team-control {
+    padding: 1rem;
+  }
+  
+  .score-display span {
+    font-size: 3.5rem;
+  }
+  
+  .team-control button {
+    height: 60px;
+    font-size: 1.2rem;
+  }
+}
+
+/* Reszta istniejących stylów */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.tab-button.active {
+  background-color: #6b7280;
+}
+
+.status-on {
+  color: #10b981;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+}
+
+.status-off {
+  color: #ef4444;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
+}
+
+.player-item.selected {
+  background-color: #4f46e5;
+  color: white;
+  border: 2px solid #818cf8;
+}
+
+button {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Sticky header */
+header.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Quick access scene buttons */
+.quick-access-scenes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.scene-button {
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Timer edit styles */
+.timer-container {
+  position: relative;
+}
+
+.timer-edit-toggle {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: #6b46c1;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  z-index: 10;
+}
+
+.timer-edit-toggle:hover {
+  opacity: 1;
+}
+
+.timer-edit-container {
+  position: relative;
+  width: 100%;
+}
+
+.timer-edit-input {
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 2px solid #6b46c1;
+  border-radius: 8px;
+  color: white;
+  text-align: center;
+}
+
+.timer-edit-confirm, .timer-edit-cancel {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.timer-edit-confirm {
+  right: 10px;
+  background-color: #10b981;
+  color: white;
+}
+
+.timer-edit-cancel {
+  left: 10px;
+  background-color: #ef4444;
+  color: white;
+}
+
+/* High contrast mode adjustments */
+body.high-contrast-mode .timer-edit-input {
+  background-color: #000;
+  border-color: var(--accent-color);
+  color: #fff;
+}
+
+body.high-contrast-mode .timer-edit-toggle,
+body.high-contrast-mode .timer-edit-confirm,
+body.high-contrast-mode .timer-edit-cancel {
+  border: 1px solid var(--accent-color);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .timer-edit-toggle {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+  
+  .timer-edit-confirm, .timer-edit-cancel {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+}
+
+/* Timer controls layout */
+.timer-controls {
+  margin-bottom: 1rem;
+}
+
+/* Główne przyciski kontroli czasu */
+.timer-controls .grid:first-child button {
+  height: 60px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Przyciski predefiniowanych czasów */
+.timer-controls .grid:last-child button {
+  height: 48px;
+}
+
+/* Timer toggle button styles */
+#timer-toggle-btn.running {
+  background-color: #f59e0b; /* Amber/yellow for running state */
+}
+
+#timer-toggle-btn.running:hover {
+  background-color: #d97706; /* Darker amber/yellow for hover */
+}
+
+/* Pulsating animation for running timer */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+#timer-toggle-btn.running {
+  animation: pulse 2s infinite;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .timer-controls .grid:first-child button {
+    height: 70px;
+    font-size: 1.3rem;
+  }
+  
+  .timer-controls .grid:last-child button {
+    height: 55px;
+    font-size: 1.1rem;
+  }
+}
+
+/* High contrast mode adjustments */
+body.high-contrast-mode #timer-toggle-btn.running {
+  background-color: #ffff00;
+  color: #000000;
+  border: 2px solid #ffffff;
+}
+
+body.high-contrast-mode .timer-controls button {
+  border-width: 2px;
+}
+
+/* Notification workflow styles */
+.notification-workflow {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.workflow-step {
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.notification-type-btn {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.notification-type-btn.active {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.notification-type-btn.active::after {
+  content: '✓';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  background-color: #10b981;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.notification-info {
+  background-color: rgba(107, 70, 193, 0.2);
+  border-left: 4px solid #8b5cf6;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.player-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.player-item.selected {
+  background-color: rgba(139, 92, 246, 0.3);
+  border-left: 4px solid #8b5cf6;
+}
+
+.player-item.selected-out {
+  background-color: rgba(239, 68, 68, 0.3);
+  border-left: 4px solid #ef4444;
+}
+
+.player-item.selected-in {
+  background-color: rgba(16, 185, 129, 0.3);
+  border-left: 4px solid #10b981;
+}
+
+.player-item .player-number {
+  font-weight: bold;
+  margin-right: 0.5rem;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.player-item .player-position {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .notification-types {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .workflow-step {
+    padding: 1rem;
+  }
+}
+
+html, body {
+  height: auto !important;
+  overflow-y: auto !important;
+}
+
+.content-wrapper {
+  min-height: 100vh;
+  padding-bottom: 50px; /* Dodaj padding na dole dla lepszego przewijania */
+}

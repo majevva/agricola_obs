@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tester Poleceń OBS Websocket</title>
+    <script src="https://cdn.jsdelivr.net/npm/obs-websocket-js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #5a5a5a; }
+        .connection-params, .commands, .results { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="password"], input[type="number"] {
+            width: calc(100% - 22px); padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;
+        }
+        button {
+            background-color: #007bff; color: white; padding: 10px 15px; border: none;
+            border-radius: 4px; cursor: pointer; margin-right: 5px; margin-bottom: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button.disconnect { background-color: #dc3545; }
+        button.disconnect:hover { background-color: #c82333; }
+        pre { background-color: #e9e9e9; padding: 15px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }
+        .command-group { margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 4px;}
+        .status { padding: 10px; margin-bottom:10px; border-radius: 4px; }
+        .status.connected { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.disconnected { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.error { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tester Poleceń OBS Websocket</h1>
+
+        <div class="connection-params">
+            <h2>Połączenie z OBS</h2>
+            <div>
+                <label for="obs-address">Adres serwera OBS Websocket:</label>
+                <input type="text" id="obs-address" value="localhost">
+            </div>
+            <div>
+                <label for="obs-port">Port serwera OBS Websocket:</label>
+                <input type="number" id="obs-port" value="4455">
+            </div>
+            <div>
+                <label for="obs-password">Hasło (jeśli ustawione):</label>
+                <input type="password" id="obs-password" placeholder="Zostaw puste jeśli brak hasła">
+            </div>
+            <button id="connect-btn">Połącz</button>
+            <button id="disconnect-btn" class="disconnect" disabled>Rozłącz</button>
+            <div id="connection-status" class="status disconnected">Status: Rozłączono</div>
+        </div>
+
+        <div class="commands" id="commands-section" style="display:none;">
+            <h2>Dostępne Polecenia (Requesty)</h2>
+            <p>Kliknij przycisk, aby wysłać polecenie do OBS i zobaczyć odpowiedź poniżej.</p>
+
+            <div class="command-group">
+                <h3>Ogólne</h3>
+                <button data-command="GetVersion">GetVersion</button>
+                <button data-command="GetStats">GetStats</button>
+                <button data-command="GetHotkeyList">GetHotkeyList</button>
+                <button data-command="GetPersistentData" data-needs-params='{"realm": "OBS_WEBSOCKET_DATA_REALM_GLOBAL", "slotName":"testSlot"}'>GetPersistentData (Global:testSlot)</button>
+                 <button data-command="BroadcastCustomEvent" data-needs-params='{"eventData": {"test":"abc"}}'>BroadcastCustomEvent</button>
+            </div>
+
+            <div class="command-group">
+                <h3>Stream</h3>
+                <button data-command="GetStreamStatus">GetStreamStatus</button>
+                </div>
+
+            <div class="command-group">
+                <h3>Nagrywanie</h3>
+                <button data-command="GetRecordStatus">GetRecordStatus</button>
+                </div>
+            
+            <div class="command-group">
+                <h3>Sceny</h3>
+                <button data-command="GetSceneList">GetSceneList</button>
+                <button data-command="GetCurrentProgramScene">GetCurrentProgramScene</button>
+                <button data-command="GetCurrentPreviewScene">GetCurrentPreviewScene</button>
+                <input type="text" id="param-sceneName" placeholder="Nazwa sceny dla SetCurrentProgramScene" style="width: 300px;">
+                <button data-command="SetCurrentProgramScene" data-param-name="sceneName">SetCurrentProgramScene</button>
+            </div>
+
+            <div class="command-group">
+                <h3>Źródła (Inputs)</h3>
+                <button data-command="GetInputList">GetInputList</button>
+                <input type="text" id="param-inputName" placeholder="Nazwa źródła (inputName)" style="width: 250px;">
+                <button data-command="GetInputSettings" data-param-name="inputName">GetInputSettings</button>
+                <button data-command="GetInputMute" data-param-name="inputName">GetInputMute</button>
+                <button data-command="ToggleInputMute" data-param-name="inputName">ToggleInputMute</button>
+            </div>
+            
+            <div class="command-group">
+                <h3>Filtry</h3>
+                 <input type="text" id="param-sourceNameForFilters" placeholder="Nazwa źródła dla filtrów" style="width: 250px;">
+                <button data-command="GetSourceFilterList" data-param-name="sourceNameForFilters">GetSourceFilterList</button>
+                <input type="text" id="param-filterName" placeholder="Nazwa filtra" style="width: 200px;">
+                <button data-command="GetSourceFilter" data-param-name="sourceNameForFilters" data-param-name2="filterName">GetSourceFilter (wymaga źródła i filtra)</button>
+            </div>
+
+        </div>
+
+        <div class="results">
+            <h2>Odpowiedź z OBS:</h2>
+            <pre id="response-output">Tutaj pojawi się odpowiedź...</pre>
+        </div>
+    </div>
+
+    <script>
+        const obs = new OBSWebSocket();
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const connectionStatusDiv = document.getElementById('connection-status');
+        const responseOutput = document.getElementById('response-output');
+        const commandsSection = document.getElementById('commands-section');
+
+        let isConnected = false;
+
+        async function connectOBS() {
+            if (isConnected) return;
+            const address = document.getElementById('obs-address').value;
+            const port = document.getElementById('obs-port').value;
+            const password = document.getElementById('obs-password').value;
+            const fullAddress = `ws://${address}:${port}`;
+
+            connectionStatusDiv.textContent = `Łączenie z ${fullAddress}...`;
+            connectionStatusDiv.className = 'status';
+
+            try {
+                await obs.connect(fullAddress, password || undefined); // Puste hasło jako undefined
+                connectionStatusDiv.textContent = 'Połączono z OBS!';
+                connectionStatusDiv.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                commandsSection.style.display = 'block';
+                isConnected = true;
+                responseOutput.textContent = 'Połączono. Wybierz polecenie.';
+            } catch (error) {
+                console.error('Błąd połączenia:', error);
+                connectionStatusDiv.textContent = `Błąd połączenia: ${error.message || error.description || 'Nieznany błąd'}`;
+                connectionStatusDiv.className = 'status error';
+                isConnected = false;
+            }
+        }
+
+        async function disconnectOBS() {
+            if (!isConnected) return;
+            try {
+                await obs.disconnect();
+                connectionStatusDiv.textContent = 'Rozłączono.';
+                connectionStatusDiv.className = 'status disconnected';
+            } catch (error) {
+                 console.error('Błąd podczas rozłączania (może być już rozłączony):', error);
+                 connectionStatusDiv.textContent = 'Rozłączono (z możliwym błędem w konsoli).';
+                 connectionStatusDiv.className = 'status disconnected';
+            } finally {
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                commandsSection.style.display = 'none';
+                isConnected = false;
+                responseOutput.textContent = 'Rozłączono. Połącz się, aby wysyłać polecenia.';
+            }
+        }
+
+        connectBtn.addEventListener('click', connectOBS);
+        disconnectBtn.addEventListener('click', disconnectOBS);
+
+        commandsSection.addEventListener('click', async (event) => {
+            if (event.target.tagName === 'BUTTON' && event.target.dataset.command) {
+                if (!isConnected) {
+                    responseOutput.textContent = 'Nie połączono z OBS. Najpierw kliknij "Połącz".';
+                    return;
+                }
+                
+                const command = event.target.dataset.command;
+                let params = {};
+
+                // Obsługa parametrów dynamicznych
+                if (event.target.dataset.needsParams) {
+                    try {
+                        params = JSON.parse(event.target.dataset.needsParams);
+                    } catch (e) {
+                        responseOutput.textContent = `Błąd parsowania parametrów JSON dla ${command}: ${e.message}`;
+                        return;
+                    }
+                } else if (event.target.dataset.paramName) {
+                    const paramInputId = `param-${event.target.dataset.paramName}`;
+                    const paramInput = document.getElementById(paramInputId);
+                    if (paramInput && paramInput.value) {
+                         // Klucz parametru to nazwa requestu np. sceneName dla SetCurrentProgramScene
+                        // lub inputName dla GetInputSettings
+                        let key = event.target.dataset.paramName;
+                        if (command === 'SetCurrentProgramScene') key = 'sceneName';
+                        if (command === 'GetInputSettings' || command === 'GetInputMute' || command === 'ToggleInputMute') key = 'inputName';
+                        if (command === 'GetSourceFilterList') key = 'sourceName';
+                        if (command === 'GetSourceFilter') {
+                            const filterInput = document.getElementById('param-filterName');
+                            if (!filterInput || !filterInput.value) {
+                                responseOutput.textContent = `Polecenie ${command} wymaga nazwy źródła i nazwy filtra.`;
+                                return;
+                            }
+                            params['sourceName'] = paramInput.value;
+                            params['filterName'] = filterInput.value;
+                        } else {
+                           params[key] = paramInput.value;
+                        }
+                    } else {
+                        responseOutput.textContent = `Polecenie ${command} wymaga parametru: ${event.target.dataset.paramName}`;
+                        return;
+                    }
+                }
+
+
+                responseOutput.textContent = `Wysyłanie polecenia: ${command} z parametrami: ${JSON.stringify(params)} ...`;
+                
+                try {
+                    const response = await obs.call(command, params);
+                    responseOutput.textContent = `Odpowiedź dla "${command}":\n\n${JSON.stringify(response, null, 2)}`;
+                } catch (error) {
+                    console.error(`Błąd wykonania polecenia ${command}:`, error);
+                    responseOutput.textContent = `Błąd wykonania polecenia "${command}":\n\n${JSON.stringify({
+                        message: error.message,
+                        code: error.code,
+                        status: error.status,
+                        //description: error.description // W starszych wersjach obs-websocket-js
+                    }, null, 2)}`;
+                }
+            }
+        });
+
+        // Automatyczne rozłączanie przy zamykaniu/odświeżaniu strony
+        window.addEventListener('beforeunload', () => {
+            if (isConnected) {
+                obs.disconnect();
+            }
+        });
+
+        // Nasłuchiwanie na zdarzenia rozłączenia z serwera
+        obs.on('ConnectionClosed', (data) => {
+            console.log('Połączenie zamknięte przez serwer lub błąd:', data);
+            connectionStatusDiv.textContent = `Rozłączono przez serwer (lub błąd). Kod: ${data?.code || 'N/A'}`;
+            connectionStatusDiv.className = 'status disconnected';
+            connectBtn.disabled = false;
+            disconnectBtn.disabled = true;
+            commandsSection.style.display = 'none';
+            isConnected = false;
+            responseOutput.textContent = 'Rozłączono. Połącz się ponownie.';
+        });
+
+        obs.on('CustomEvent', (data) => {
+            console.log('Otrzymano CustomEvent:', data);
+            responseOutput.textContent = `Otrzymano CustomEvent:\n\n${JSON.stringify(data, null, 2)}`;
+        });
+
+    </script>
+</body>
+</html>

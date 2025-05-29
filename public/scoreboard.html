@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Scoreboard</title>
+  <link rel="stylesheet" href="css/scoreboard.css">
+</head>
+<body>
+  <div class="pl-scoreboard">
+    <div class="team home">
+      <div class="color"></div>
+      <div class="name">
+        <span id="home-name">GOSPODARZE</span>
+      </div>
+    </div>
+    <div class="goals">
+      <div class="goal home">
+        <span id="home-score">0</span>
+      </div>
+      <div class="divider">
+        <span>-</span>
+      </div>
+      <div class="goal away">
+        <span id="away-score">0</span>
+      </div>
+    </div>
+    <div class="time">
+      <span>
+        <span class="minute" id="minute">00</span>
+        <span class="time-divider">:</span>
+        <span class="second" id="second">00</span>
+      </span>
+    </div>
+    <div class="team away">
+      <div class="color"></div>
+      <div class="name">
+        <span id="away-name">GOŚCIE</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    function adjustTeamWidths() {
+      const homeName = document.getElementById('home-name').textContent;
+      const awayName = document.getElementById('away-name').textContent;
+      const homeTeam = document.querySelector('.team.home');
+      const awayTeam = document.querySelector('.team.away');
+
+      const minWidth = 102;
+      const charWidth = 14;
+
+      const homeWidth = Math.max(minWidth, homeName.length * charWidth + 12);
+      const awayWidth = Math.max(minWidth, awayName.length * charWidth + 12);
+
+      homeTeam.style.width = `${homeWidth}px`;
+      awayTeam.style.width = `${awayWidth}px`;
+    }
+
+    function updateScorebug() {
+      fetch('/scorebug-data')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('home-name').textContent = data.homeName;
+          document.getElementById('away-name').textContent = data.awayName;
+          document.getElementById('home-score').textContent = data.homeScore;
+          document.getElementById('away-score').textContent = data.awayScore;
+          document.getElementById('minute').textContent = data.minute;
+          document.getElementById('second').textContent = data.second;
+          document.querySelector('.team.home .color').style.backgroundColor = data.homeColor;
+          document.querySelector('.team.away .color').style.backgroundColor = data.awayColor;
+          document.querySelector('.team.home').style.backgroundColor = data.teamBackground;
+          document.querySelector('.team.away').style.backgroundColor = data.teamBackground;
+          document.querySelector('.goals').style.backgroundColor = data.goalsBackground;
+          document.querySelector('.time').style.backgroundColor = data.timeBackground;
+          document.querySelector('.team.home .name').style.color = data.teamTextColor;
+          document.querySelector('.team.away .name').style.color = data.teamTextColor;
+          document.querySelector('.goals').style.color = data.goalsTextColor;
+          document.querySelector('.time').style.color = data.timeTextColor;
+
+          adjustTeamWidths();
+        })
+        .catch(error => console.error('Błąd:', error));
+    }
+
+    adjustTeamWidths();
+    setInterval(updateScorebug, 1000);
+  </script>
+</body>
+</html>
