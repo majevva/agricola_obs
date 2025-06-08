@@ -20,7 +20,8 @@ const log = {
   success: (message) => console.log(chalk.bgGreen.black(' SUCCESS ') + ' ' + message),
   info: (message) => console.log(chalk.bgCyan.black(' INFO ') + ' ' + message),
   stream: (message) => console.log(chalk.bgGreen.white(' STREAM ') + ' ' + message),
-  file: (message) => console.log(chalk.bgWhite.black(' FILE ') + ' ' + message)
+  file: (message) => console.log(chalk.bgWhite.black(' FILE ') + ' ' + message),
+  warn: (message) => console.log(chalk.bgYellow.black(' WARN ') + ' ' + message)
 };
 
 try {
